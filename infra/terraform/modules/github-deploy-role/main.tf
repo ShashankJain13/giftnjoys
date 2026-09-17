@@ -57,10 +57,28 @@ data "aws_iam_policy_document" "trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
+    # AWS requires the trust policy to scope on "sub" (or "job_workflow_ref") itself — a condition
+    # on "repository"/"ref" alone is rejected as "not scoped to all". GitHub now issues sub as
+    # repo:<owner>@<ownerId>/<repo>@<repoId>:ref:refs/heads/<branch> (an "immutable ID" format), so
+    # the owner/repo *names* are pinned exactly and only the numeric ID segments are wildcarded.
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values = [
+        for b in var.allowed_branches :
+        "repo:${split("/", var.github_repository)[0]}@*/${split("/", var.github_repository)[1]}@*:ref:refs/heads/${b}"
+      ]
+    }
+    # Belt-and-braces: also require the dedicated repository/ref claims to match exactly.
     condition {
       test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = [for b in var.allowed_branches : "repo:${var.github_repository}:ref:refs/heads/${b}"]
+      variable = "token.actions.githubusercontent.com:repository"
+      values   = [var.github_repository]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:ref"
+      values   = [for b in var.allowed_branches : "refs/heads/${b}"]
     }
   }
 }
