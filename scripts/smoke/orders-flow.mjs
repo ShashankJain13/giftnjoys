@@ -1,8 +1,11 @@
 import { resolve } from 'node:path';
 process.loadEnvFile(resolve(import.meta.dirname, '../../.env.local'));
-const PUB = 'http://localhost:4000/v1';
-const ADM = 'http://localhost:4001/admin/v1';
-const MAIL = 'http://localhost:8025/api/v1';
+// Override for AWS: SMOKE_PUBLIC_API, SMOKE_ADMIN_API, SMOKE_ADMIN_EMAIL/PASSWORD, SMOKE_MAILPIT=off
+const PUB = `${process.env.SMOKE_PUBLIC_API ?? 'http://localhost:4000'}/v1`;
+const ADM = `${process.env.SMOKE_ADMIN_API ?? 'http://localhost:4001'}/admin/v1`;
+const MAIL = process.env.SMOKE_MAILPIT === 'off' ? null : 'http://localhost:8025/api/v1';
+const ADMIN_EMAIL = process.env.SMOKE_ADMIN_EMAIL ?? process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD ?? process.env.ADMIN_PASSWORD;
 const check = (label, cond, extra = '') => console.log(`${cond ? 'PASS' : 'FAIL'}  ${label}${extra ? ' — ' + extra : ''}`);
 const j = async (url, init = {}) => {
   const res = await fetch(url, { ...init, headers: { 'content-type': 'application/json', ...(init.headers ?? {}) } });
@@ -10,7 +13,7 @@ const j = async (url, init = {}) => {
   return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
 };
 
-await fetch(`${MAIL}/messages`, { method: 'DELETE' });
+if (MAIL) await fetch(`${MAIL}/messages`, { method: 'DELETE' });
 
 const settings = await j(`${PUB}/settings/public`);
 check('public settings', settings.status === 200 && settings.body.storeName === 'GiftNJoys', `wa=${settings.body.whatsappNumber} freeAbove=${settings.body.shipping.freeShippingThreshold}`);
@@ -45,7 +48,7 @@ check('drafts hidden from storefront', !draftVisible, `total published visible=$
 const teddy = search.body.items[0];
 // Keep the smoke test rerunnable: top up stock that earlier runs consumed.
 {
-  const l = await j(`${ADM}/auth/login`, { method: 'POST', body: JSON.stringify({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD }) });
+  const l = await j(`${ADM}/auth/login`, { method: 'POST', body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) });
   await j(`${ADM}/products/${teddy.id}/stock`, { method: 'PATCH', body: JSON.stringify({ set: 50 }), headers: { authorization: `Bearer ${l.body.token}` } });
 }
 const mugLow = all.body.items.find(p => p.lowStock);
@@ -67,10 +70,12 @@ const invalid = await j(`${PUB}/orders`, { method: 'POST', body: JSON.stringify(
 check('invalid pincode → field error', invalid.status === 400 && invalid.body.error.details.some(d => d.path === 'customer.pincode'));
 
 const order = placed.body.orderNumber;
-await new Promise(r => setTimeout(r, 800));
-const mails1 = await j(`${MAIL}/messages`);
-const subjects1 = mails1.body.messages.map(m => `${m.To.map(t => t.Address).join(',')}: ${m.Subject}`);
-check('emails for ORDER_PLACED (admin + customer)', subjects1.length === 2, subjects1.join(' || '));
+if (MAIL) {
+  await new Promise(r => setTimeout(r, 800));
+  const mails1 = await j(`${MAIL}/messages`);
+  const subjects1 = mails1.body.messages.map(m => `${m.To.map(t => t.Address).join(',')}: ${m.Subject}`);
+  check('emails for ORDER_PLACED (admin + customer)', subjects1.length === 2, subjects1.join(' || '));
+}
 
 const track = await j(`${PUB}/orders/track?orderNumber=${order}&phone=9820012345`);
 check('track with matching phone', track.status === 200 && track.body.status === 'PENDING');
@@ -78,7 +83,7 @@ check('track hides full address', !JSON.stringify(track.body).includes('Lake Vie
 check('track with wrong phone → 404', (await j(`${PUB}/orders/track?orderNumber=${order}&phone=9820099999`)).status === 404);
 
 // Admin: approve → ship → deliver
-const login = await j(`${ADM}/auth/login`, { method: 'POST', body: JSON.stringify({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD }) });
+const login = await j(`${ADM}/auth/login`, { method: 'POST', body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }) });
 const auth = { authorization: `Bearer ${login.body.token}` };
 const pending = await j(`${ADM}/orders?status=PENDING`, { headers: auth });
 check('admin sees pending order', pending.body.items.some(o => o.orderNumber === order));
@@ -95,10 +100,12 @@ check('invalid transition rejected', again.status === 400, again.body.error?.mes
 const delivered = await j(`${ADM}/orders/${order}/deliver`, { method: 'POST', body: '{}', headers: auth });
 check('deliver', delivered.body.status === 'DELIVERED');
 
-await new Promise(r => setTimeout(r, 800));
-const mails2 = await j(`${MAIL}/messages`);
-const subjects2 = mails2.body.messages.map(m => m.Subject);
-check('status emails (approved, shipped, delivered)', ['is confirmed', 'has shipped', 'Delivered:'].every(s => subjects2.some(x => x.includes(s))), subjects2.join(' || '));
+if (MAIL) {
+  await new Promise(r => setTimeout(r, 800));
+  const mails2 = await j(`${MAIL}/messages`);
+  const subjects2 = mails2.body.messages.map(m => m.Subject);
+  check('status emails (approved, shipped, delivered)', ['is confirmed', 'has shipped', 'Delivered:'].every(s => subjects2.some(x => x.includes(s))), subjects2.join(' || '));
+}
 
 const trackShipped = await j(`${PUB}/orders/track?orderNumber=${order}&phone=9820012345`);
 check('track shows shipping + history', trackShipped.body.shipping?.awb === 'DL123456789IN' && trackShipped.body.history.length === 4, trackShipped.body.history.map(h => h.status).join(' → '));

@@ -4,7 +4,8 @@ import type { Category, HomeData, Product, ProductList, PublicSettings } from '.
 const SERVER_API = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 /** Browser base URL. */
 export const PUBLIC_API = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
-export const SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+/** Inlined at build time so the server bundle needs no runtime env (avoids a CloudFront ↔ Lambda dependency cycle). */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(

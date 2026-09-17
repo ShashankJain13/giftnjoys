@@ -1,23 +1,24 @@
 import { S3Storage } from '@gnj/adapters';
 import { createDb, createRepositories, type OccasionSlug } from '@gnj/core';
 import bcrypt from 'bcryptjs';
-import { loadLocalEnv } from './env';
+import { loadAwsTarget, loadLocalEnv } from './env';
 import { categorySvg, productSvg } from './placeholder-svg';
 
-const env = loadLocalEnv();
+// `pnpm seed` → local Docker stack. `AWS_PROFILE=giftnjoys-dev pnpm seed -- --aws` → AWS dev (from Terraform outputs).
+const env = process.argv.includes('--aws') ? await loadAwsTarget() : loadLocalEnv();
 const force = process.argv.includes('--force');
+const skipSamples = process.argv.includes('--no-samples');
+console.log(`Seeding ${env.kind === 'aws' ? `AWS tables ${env.tablePrefix}-*` : 'local Docker stack'}`);
 
 const db = createDb({
   region: env.region,
   tablePrefix: env.tablePrefix,
-  endpoint: env.dynamodbEndpoint,
-  credentials: env.credentials,
+  ...(env.dynamodbEndpoint ? { endpoint: env.dynamodbEndpoint, credentials: env.credentials } : {}),
 });
 const repos = createRepositories(db);
 const storage = new S3Storage({
   region: env.region,
-  endpoint: env.s3Endpoint,
-  credentials: env.credentials,
+  ...(env.s3Endpoint ? { endpoint: env.s3Endpoint, credentials: env.credentials } : {}),
   mediaBucket: env.mediaBucket,
   importsBucket: env.importsBucket,
   mediaBaseUrl: env.mediaBaseUrl,
@@ -86,7 +87,7 @@ const PRODUCTS: SeedProduct[] = [
 async function seedAdmin() {
   const passwordHash = await bcrypt.hash(env.adminPassword, 10);
   await repos.meta.putAdminUser({ email: env.adminEmail, name: 'Store Admin', passwordHash });
-  console.log(`✓ admin user ${env.adminEmail} (password from .env.local)`);
+  console.log(`✓ admin user ${env.adminEmail} (password ${env.kind === 'aws' ? 'from SSM parameter' : 'from .env.local'})`);
 }
 
 async function seedSettings(categoryIds: Record<string, string>) {
@@ -144,6 +145,10 @@ async function seedCatalog(): Promise<Record<string, string>> {
   console.log(`✓ ${CATEGORIES.length} categories`);
 
   let published = 0;
+  if (skipSamples) {
+    console.log('• --no-samples: skipping sample products');
+    return ids;
+  }
   for (const [i, p] of PRODUCTS.entries()) {
     const category = CATEGORIES.find((c) => c.key === p.category)!;
     const created = await repos.products.create({

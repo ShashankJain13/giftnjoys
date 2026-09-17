@@ -11,6 +11,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.1134.0",
     "@gnj/adapters": "workspace:*",
     "@gnj/core": "workspace:*",
     "@gnj/notifications": "workspace:*",

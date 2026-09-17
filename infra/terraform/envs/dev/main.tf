@@ -5,6 +5,14 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.65"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.9"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.8"
+    }
   }
 }
 
@@ -22,10 +30,15 @@ provider "aws" {
   }
 }
 
+locals {
+  name         = "giftnjoys-${var.environment}"
+  table_prefix = "gnj-${var.environment}"
+}
+
 module "media_cdn" {
   source = "../../modules/media-cdn"
 
-  name_prefix            = "giftnjoys-${var.environment}"
-  upload_allowed_origins = var.upload_allowed_origins
+  name_prefix            = local.name
+  upload_allowed_origins = concat([module.admin_site.url], var.local_admin_origins)
   create_imports_bucket  = var.create_imports_bucket
 }

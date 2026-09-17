@@ -85,28 +85,59 @@ Every piece of infrastructure is behind an adapter, so the same code runs locall
 | Queues | in-process | SQS → Lambda workers |
 | Admin auth | local JWT (bcrypt user in DynamoDB) | Cognito |
 
-## AWS (Terraform)
+## AWS deployment (dev)
 
-Always use the `giftnjoys-dev` AWS profile. Run `plan` and review it before every `apply`.
+Low-cost serverless setup in `ap-south-1`, fully managed with Terraform (profile `giftnjoys-dev`). Idle cost is about $0, and roughly $0–2/month at launch traffic.
+
+| Piece | AWS services | URL |
+|---|---|---|
+| Storefront | Next.js via OpenNext → Lambda + CloudFront; S3 for static files and the page cache; SQS FIFO queue for page refreshes | `terraform output web_url` |
+| Admin panel | S3 + CloudFront (single-page app, `noindex`) | `terraform output admin_url` |
+| Public / Admin API | API Gateway HTTP API → Lambda (Hono) | `public_api_url`, `admin_api_url` |
+| Workers | SQS → Lambda (WhatsApp import, email notifier), each queue with a dead-letter queue | — |
+| Data & files | DynamoDB `gnj-dev-*` (on-demand, PITR), S3 media bucket + CloudFront | `cdn_url` |
+| Email | SES (sender identity = admin email) | — |
+| Secrets | SSM Parameter Store (admin login signing secret, initial admin password) | — |
+
+### Infrastructure (manual, reviewed)
 
 ```bash
-terraform -chdir=infra/terraform/bootstrap init && terraform -chdir=infra/terraform/bootstrap plan   # once: state bucket
-terraform -chdir=infra/terraform/envs/dev init
-terraform -chdir=infra/terraform/envs/dev plan -out=dev.tfplan
-terraform -chdir=infra/terraform/envs/dev apply dev.tfplan
-terraform -chdir=infra/terraform/envs/dev output
+export AWS_PROFILE=giftnjoys-dev
+aws sts get-caller-identity                          # confirm account 637423417590
+cd infra/terraform/envs/dev
+cp terraform.tfvars.example terraform.tfvars         # set admin_email (git-ignored)
+terraform init
+terraform plan -out=dev.tfplan                       # review!
+terraform apply dev.tfplan
 ```
 
-| Stack | Creates |
-|---|---|
-| `bootstrap` | `giftnjoys-tfstate-<account>-ap-south-1`: remote state (versioned, encrypted, S3 native locking) |
-| `envs/dev` → `modules/media-cdn` | Private media bucket + CloudFront (Origin Access Control, default `*.cloudfront.net` domain), private imports bucket (exports auto-expire after 30 days) |
+Terraform creates Lambdas with placeholder code and never touches their code afterwards. Application code is deployed separately (see below).
 
-To make the locally running app store images in S3 and serve them from CloudFront, follow the steps at the bottom of `.env.example`.
+### Application deploys
+
+```bash
+AWS_PROFILE=giftnjoys-dev scripts/deploy/deploy.sh dev
+```
+
+The script builds and uploads the APIs and workers, the OpenNext storefront and the admin panel, invalidates CloudFront and runs health checks. It reads all resource names from the SSM parameter `/giftnjoys/dev/deploy-config`.
+
+GitHub Actions does the same on every push to `development` (`.github/workflows/deploy-dev.yml`). It signs in through an IAM role that trusts GitHub, so no AWS keys are stored in GitHub. `ci.yml` runs typecheck, tests with DynamoDB Local, and Terraform format/validate. CI never runs `terraform apply`.
+
+### First-time setup
+
+```bash
+AWS_PROFILE=giftnjoys-dev pnpm seed -- --aws                  # categories, settings, admin user (+ sample products; add --no-samples to skip)
+aws ssm get-parameter --with-decryption --profile giftnjoys-dev --region ap-south-1 \
+  --name /giftnjoys/dev/admin/initial-password --query Parameter.Value --output text   # admin login password
+```
+
+- **SES:** click the verification link AWS emails to the admin address, or no emails go out. SES starts in sandbox mode, so only verified addresses receive mail. Request production access before real customers order.
+- **Publish delay:** newly published products appear on the storefront within ~5 minutes (public API catalog cache).
+- **Smoke tests against AWS:** set `SMOKE_PUBLIC_API`, `SMOKE_ADMIN_API`, `SMOKE_ADMIN_EMAIL`, `SMOKE_ADMIN_PASSWORD` and `SMOKE_MAILPIT=off`, then run `pnpm smoke`. The tests create data, so clean up afterwards.
 
 ## Notes
 
 - Never commit `.env.local`, credential CSVs, `*.tfvars` or Terraform state; `.gitignore` already covers them.
 - The MinIO image comes from `quay.io/minio/minio` because Docker Hub's `minio/minio` is no longer published.
 - Policy pages (`/shipping-policy`, `/returns-policy`, `/privacy-policy`, `/terms`) contain template text. Review it before going live.
-- Next phase: Terraform for AWS serverless (API Gateway + Lambda, DynamoDB, S3/CloudFront, SQS, SES, Cognito) using the `giftnjoys-dev` AWS profile.
+- Before production: SES production access, custom domain (Route 53 + ACM), Cognito for admin login, a `prod` Terraform env with deletion protection.

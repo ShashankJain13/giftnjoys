@@ -43,3 +43,6 @@ samples/*
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Terraform Lambda zips
+infra/terraform/**/.build/

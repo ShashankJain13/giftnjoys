@@ -12,6 +12,14 @@ type Props = { params: Promise<{ slug: string }> };
 
 export const revalidate = 60;
 
+/**
+ * Empty list = don't prebuild product pages at build time, but still cache each one after its first
+ * request (ISR, refreshed every 60s). Without this export Next 15 renders the route on every request.
+ */
+export function generateStaticParams(): Array<{ slug: string }> {
+  return [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const data = await getProduct(slug);

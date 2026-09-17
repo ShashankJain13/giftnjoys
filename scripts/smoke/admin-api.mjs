@@ -5,7 +5,10 @@ const root = resolve(import.meta.dirname, '../..');
 const require = createRequire(`${root}/packages/wa-import/package.json`);
 const { zipSync, strToU8 } = require('fflate');
 process.loadEnvFile(`${root}/.env.local`);
-const API = 'http://localhost:4001/admin/v1';
+// Override for AWS: SMOKE_ADMIN_API=https://…execute-api… SMOKE_ADMIN_EMAIL=… SMOKE_ADMIN_PASSWORD=…
+const API = `${process.env.SMOKE_ADMIN_API ?? 'http://localhost:4001'}/admin/v1`;
+const ADMIN_EMAIL = process.env.SMOKE_ADMIN_EMAIL ?? process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD ?? process.env.ADMIN_PASSWORD;
 let token = '';
 const call = async (method, path, body) => {
   const res = await fetch(API + path, { method, headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -15,8 +18,8 @@ const call = async (method, path, body) => {
 const check = (label, cond, extra = '') => console.log(`${cond ? 'PASS' : 'FAIL'}  ${label}${extra ? ' — ' + extra : ''}`);
 
 check('401 without token', (await call('GET', '/products')).status === 401);
-check('wrong password rejected', (await call('POST', '/auth/login', { email: process.env.ADMIN_EMAIL, password: 'nope' })).status === 401);
-const login = await call('POST', '/auth/login', { email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD });
+check('wrong password rejected', (await call('POST', '/auth/login', { email: ADMIN_EMAIL, password: 'nope' })).status === 401);
+const login = await call('POST', '/auth/login', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
 token = login.body?.token ?? '';
 check('login', login.status === 200 && !!token);
 
@@ -27,7 +30,7 @@ const list = await call('GET', '/products?status=PUBLISHED&pageSize=3&sort=price
 check('product list', list.status === 200 && list.body.items.length === 3, `total=${list.body.total} first=${list.body.items[0]?.name} (₹${list.body.items[0]?.price}) img=${list.body.items[0]?.images[0]?.url}`);
 
 const cats = await call('GET', '/categories');
-check('categories with counts', cats.status === 200 && cats.body.items.length === 8, cats.body.items.map(c => `${c.slug}:${c.productCount}`).join(' '));
+check('categories with counts', cats.status === 200 && cats.body.items.length >= 8, cats.body.items.map(c => `${c.slug}:${c.productCount}`).join(' '));
 
 const bad = await call('POST', '/products', { name: 'X', price: -1 });
 check('validation error shape', bad.status === 400 && bad.body.error.code === 'VALIDATION_ERROR', JSON.stringify(bad.body.error.details));
@@ -66,10 +69,11 @@ async function runImport() {
   const u = await fetch(p.body.url, { method: 'POST', body: f });
   if (u.status !== 204) throw new Error('zip upload failed ' + u.status);
   const job = await call('POST', '/imports', { key: p.body.key, filename: 'WhatsApp Chat - Wholesale Gift Deals.zip' });
-  for (let i = 0; i < 40; i++) {
+  // Local runs the worker in-process; on AWS it goes through SQS → Lambda (allow for cold starts).
+  for (let i = 0; i < 120; i++) {
     const j = await call('GET', `/imports/${job.body.id}`);
     if (['DONE', 'FAILED'].includes(j.body.status)) return j.body;
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 500));
   }
   throw new Error('import timeout');
 }

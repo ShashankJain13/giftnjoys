@@ -1,4 +1,4 @@
-import type { EmailSender, Logger } from '@gnj/adapters';
+import type { EmailMessage, EmailSender, Logger } from '@gnj/adapters';
 import type { OrderStatus, OrdersRepository, SettingsRepository } from '@gnj/core';
 import { adminNewOrderEmail, customerOrderReceivedEmail, customerStatusEmail } from './templates';
 
@@ -16,7 +16,38 @@ export interface NotificationDeps {
   log: Logger;
 }
 
+/**
+ * Errors that retrying won't fix (e.g. SES sandbox rejecting an unverified recipient).
+ * These are logged and dropped so a queue retry doesn't re-send the emails that did succeed.
+ */
+const PERMANENT_EMAIL_ERRORS = new Set([
+  'MessageRejected',
+  'MailFromDomainNotVerifiedException',
+  'AccountSuspendedException',
+  'SendingPausedException',
+  'BadRequestException',
+  'NotFoundException',
+]);
+
+type SendResult = 'sent' | 'rejected' | 'failed';
+
 export function createNotificationHandler(deps: NotificationDeps) {
+  async function send(kind: string, message: EmailMessage): Promise<SendResult> {
+    try {
+      await deps.email.send(message);
+      return 'sent';
+    } catch (err) {
+      const name = (err as { name?: string }).name ?? 'Error';
+      // Log only the error name: SES messages include recipient addresses.
+      if (PERMANENT_EMAIL_ERRORS.has(name)) {
+        deps.log.warn('notification.rejected', { kind, error: name });
+        return 'rejected';
+      }
+      deps.log.error('notification.send_failed', { kind, error: name });
+      return 'failed';
+    }
+  }
+
   return async function handle(event: NotificationEvent): Promise<void> {
     const order = await deps.orders.get(event.orderNumber);
     if (!order) {
@@ -26,22 +57,28 @@ export function createNotificationHandler(deps: NotificationDeps) {
     const store = await deps.settings.get('store');
     const ctx = { store, siteUrl: deps.siteUrl, adminUrl: deps.adminUrl, mediaUrl: deps.mediaUrl };
 
+    let results: SendResult[];
     if (event.type === 'ORDER_PLACED') {
-      const results = await Promise.allSettled([
-        deps.email.send({ to: store.adminEmails, replyTo: order.customer.email, ...adminNewOrderEmail(order, ctx) }),
-        deps.email.send({ to: order.customer.email, replyTo: store.supportEmail, ...customerOrderReceivedEmail(order, ctx) }),
+      results = await Promise.all([
+        send('admin-new-order', { to: store.adminEmails, replyTo: order.customer.email, ...adminNewOrderEmail(order, ctx) }),
+        send('customer-order-received', { to: order.customer.email, replyTo: store.supportEmail, ...customerOrderReceivedEmail(order, ctx) }),
       ]);
-      const failed = results.filter((r) => r.status === 'rejected');
-      if (failed.length) {
-        throw new Error(`Failed to send ${failed.length} ORDER_PLACED email(s): ${String((failed[0] as PromiseRejectedResult).reason)}`);
-      }
-      deps.log.info('notification.sent', { type: event.type, orderNumber: order.orderNumber, emails: 2 });
-      return;
+    } else {
+      const email = customerStatusEmail(order, event.status, ctx);
+      if (!email) return;
+      results = [await send(`customer-${event.status.toLowerCase()}`, { to: order.customer.email, replyTo: store.supportEmail, ...email })];
     }
 
-    const email = customerStatusEmail(order, event.status, ctx);
-    if (!email) return;
-    await deps.email.send({ to: order.customer.email, replyTo: store.supportEmail, ...email });
-    deps.log.info('notification.sent', { type: event.type, status: event.status, orderNumber: order.orderNumber });
+    deps.log.info('notification.processed', {
+      type: event.type,
+      orderNumber: order.orderNumber,
+      sent: results.filter((r) => r === 'sent').length,
+      rejected: results.filter((r) => r === 'rejected').length,
+      failed: results.filter((r) => r === 'failed').length,
+    });
+    // Retry (via the queue) only when nothing went out and at least one failure looks transient.
+    if (results.includes('failed') && !results.includes('sent')) {
+      throw new Error(`Email delivery failed for ${event.type} ${order.orderNumber}`);
+    }
   };
 }
