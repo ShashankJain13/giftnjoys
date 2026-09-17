@@ -76,7 +76,7 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <ProductGallery images={product.images} name={product.name} />
+        <ProductGallery images={product.images} videos={product.videos} name={product.name} />
 
         <div>
           {product.isBestseller && <span className="mb-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">★ Bestseller</span>}
@@ -97,6 +97,28 @@ export default async function ProductPage({ params }: Props) {
             )}
           </p>
           {product.moq && product.moq > 1 && <p className="mt-1 text-sm text-neutral-600">Minimum order: {product.moq} pieces</p>}
+          {(product.color || product.size || product.style) && (
+            <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-neutral-700">
+              {product.color && (
+                <div className="flex gap-1.5">
+                  <dt className="font-medium text-neutral-500">Colour:</dt>
+                  <dd>{product.color}</dd>
+                </div>
+              )}
+              {product.size && (
+                <div className="flex gap-1.5">
+                  <dt className="font-medium text-neutral-500">Size:</dt>
+                  <dd>{product.size}</dd>
+                </div>
+              )}
+              {product.style && (
+                <div className="flex gap-1.5">
+                  <dt className="font-medium text-neutral-500">Style:</dt>
+                  <dd>{product.style}</dd>
+                </div>
+              )}
+            </dl>
+          )}
 
           <div className="mt-6">
             <PurchasePanel product={product} whatsappNumber={settings.whatsappNumber} productUrl={url} />

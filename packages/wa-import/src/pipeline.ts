@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { extractFields, guessCategory } from './extract';
 import { groupMessages } from './group';
 import { parseChat } from './parse-chat';
-import type { BuildOptions, BuildResult, CandidateImage, ChatExport, ImportCandidate } from './types';
-import { sniffImageType } from './unzip';
+import type { BuildOptions, BuildResult, CandidateImage, CandidateVideo, ChatExport, ImportCandidate } from './types';
+import { sniffImageType, sniffVideoType } from './unzip';
 
 const sha256 = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex');
 
@@ -15,11 +15,13 @@ function normaliseForHash(text: string): string {
     .trim();
 }
 
-function confidenceScore(c: Pick<ImportCandidate, 'name' | 'price' | 'mrp' | 'description' | 'images' | 'warnings'>): number {
+function confidenceScore(
+  c: Pick<ImportCandidate, 'name' | 'price' | 'mrp' | 'description' | 'images' | 'videos' | 'warnings'>,
+): number {
   let score = 0;
   if (c.price !== undefined) score += 0.4;
   if (c.name && c.name.length >= 3) score += 0.2;
-  if (c.images.length > 0) score += 0.25;
+  if (c.images.length > 0 || c.videos.length > 0) score += 0.25;
   if (c.mrp !== undefined) score += 0.05;
   if (c.description) score += 0.1;
   score -= 0.05 * c.warnings.length;
@@ -41,24 +43,30 @@ export function buildCandidates(exp: ChatExport, opts: BuildOptions = {}): Build
     const candidateWarnings = [...fields.warnings];
 
     const images: CandidateImage[] = [];
+    const videos: CandidateVideo[] = [];
     let missingImages = g.mediaOmitted;
     for (const filename of g.attachments) {
       const bytes = exp.media.get(filename);
-      const type = bytes ? sniffImageType(bytes) : undefined;
-      if (!bytes || !type) {
-        missingImages++;
+      const imageType = bytes ? sniffImageType(bytes) : undefined;
+      if (bytes && imageType) {
+        if (images.length < maxImages) images.push({ filename, contentType: imageType, bytes });
         continue;
       }
-      if (images.length < maxImages) images.push({ filename, contentType: type, bytes });
+      const videoType = bytes ? sniffVideoType(bytes) : undefined;
+      if (bytes && videoType) {
+        if (videos.length < 3) videos.push({ filename, contentType: videoType, bytes });
+        continue;
+      }
+      missingImages++;
     }
     if (missingImages > 0) {
       candidateWarnings.push(
         exp.media.size === 0
-          ? 'Images were not included in the export (use "Include media")'
-          : `${missingImages} image(s) missing or unsupported`,
+          ? 'Media was not included in the export (use "Include media")'
+          : `${missingImages} attachment(s) missing or unsupported`,
       );
     }
-    if (images.length === 0 && missingImages === 0) candidateWarnings.push('No image');
+    if (images.length === 0 && videos.length === 0 && missingImages === 0) candidateWarnings.push('No image');
 
     const sourceHash = sha256(`${normaliseForHash(rawText)}|${images[0] ? sha256(images[0].bytes) : ''}`);
     const categoryId = guessCategory(rawText, opts.categoryKeywords);
@@ -70,9 +78,12 @@ export function buildCandidates(exp: ChatExport, opts: BuildOptions = {}): Build
       ...(fields.price !== undefined ? { price: fields.price } : {}),
       ...(fields.mrp !== undefined ? { mrp: fields.mrp } : {}),
       ...(fields.moq !== undefined ? { moq: fields.moq } : {}),
+      ...(fields.color ? { color: fields.color } : {}),
+      ...(fields.size ? { size: fields.size } : {}),
       tags: fields.tags,
       ...(categoryId ? { categoryId } : {}),
       images,
+      videos,
       missingImages,
       rawText,
       sourceHash,

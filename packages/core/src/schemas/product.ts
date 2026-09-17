@@ -34,7 +34,11 @@ export interface Product {
   stockQty: number;
   sku?: string;
   moq?: number;
+  color?: string;
+  size?: string;
+  style?: string;
   images: ImageRef[];
+  videos: ImageRef[];
   tags: string[];
   occasions: OccasionSlug[];
   isFeatured: boolean;
@@ -63,7 +67,11 @@ const productFields = {
   stockQty: z.number().int().min(0).max(1_000_000),
   sku: z.string().trim().max(64).nullable(),
   moq: z.number().int().min(1).max(100_000).nullable(),
+  color: z.string().trim().max(80).nullable(),
+  size: z.string().trim().max(80).nullable(),
+  style: z.string().trim().max(80).nullable(),
   images: z.array(imageRefSchema).max(12, 'At most 12 images'),
+  videos: z.array(imageRefSchema).max(3, 'At most 3 videos'),
   tags: z.array(tagSchema).max(30),
   occasions: z.array(occasionSlugSchema).max(OCCASIONS.length),
   isFeatured: z.boolean(),

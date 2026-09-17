@@ -11,6 +11,7 @@ export interface ImportJobStats {
   withoutImage: number;
   withoutPrice: number;
   imagesUploaded: number;
+  videosUploaded: number;
 }
 
 export interface ImportJob {
@@ -38,8 +39,9 @@ export const importCreateSchema = z.object({
   filename: z.string().trim().min(1).max(200),
 });
 
-export const UPLOAD_PURPOSES = ['product-image', 'category-image', 'banner-image', 'import'] as const;
+export const UPLOAD_PURPOSES = ['product-image', 'product-video', 'category-image', 'banner-image', 'import'] as const;
 export const IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
+export const VIDEO_CONTENT_TYPES = ['video/mp4', 'video/quicktime'] as const;
 export const IMPORT_CONTENT_TYPES = ['application/zip', 'application/x-zip-compressed', 'text/plain'] as const;
 
 export const presignUploadSchema = z.object({

@@ -32,7 +32,11 @@ export interface PublicProduct {
   /** Only exposed when low, so shoppers see "Only 3 left". */
   stockLeft?: number;
   moq?: number;
+  color?: string;
+  size?: string;
+  style?: string;
   images: string[];
+  videos: string[];
   category: PublicCategoryRef | null;
   tags: string[];
   occasions: OccasionSlug[];
@@ -176,7 +180,11 @@ export class CatalogCache {
       lowStock,
       ...(lowStock ? { stockLeft: p.stockQty } : {}),
       ...(p.moq ? { moq: p.moq } : {}),
+      ...(p.color ? { color: p.color } : {}),
+      ...(p.size ? { size: p.size } : {}),
+      ...(p.style ? { style: p.style } : {}),
       images: p.images.map((i) => this.mediaUrl(i.key)),
+      videos: p.videos.map((v) => this.mediaUrl(v.key)),
       category: category ? { id: category.id, slug: category.slug, name: category.name } : null,
       tags: p.tags,
       occasions: p.occasions,

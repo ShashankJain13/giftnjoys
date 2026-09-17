@@ -7,6 +7,7 @@ import { categorySvg, productSvg } from './placeholder-svg';
 // `pnpm seed` → local Docker stack. `AWS_PROFILE=giftnjoys-dev pnpm seed -- --aws` → AWS dev (from Terraform outputs).
 const env = process.argv.includes('--aws') ? await loadAwsTarget() : loadLocalEnv();
 const force = process.argv.includes('--force');
+const reset = process.argv.includes('--reset');
 const skipSamples = process.argv.includes('--no-samples');
 console.log(`Seeding ${env.kind === 'aws' ? `AWS tables ${env.tablePrefix}-*` : 'local Docker stack'}`);
 
@@ -36,14 +37,22 @@ interface SeedCategory {
 }
 
 const CATEGORIES: SeedCategory[] = [
-  { key: 'personalised', name: 'Personalised Gifts', slug: 'personalised-gifts', hue: 340, description: 'Names, photos and messages made into keepsakes.', keywords: ['personalised', 'personalized', 'custom', 'customised', 'engraved', 'name', 'photo'] },
-  { key: 'decor', name: 'Home & Décor', slug: 'home-decor', hue: 28, description: 'Candles, frames and pieces that make a house feel like home.', keywords: ['decor', 'candle', 'lamp', 'vase', 'wall', 'clock', 'cushion', 'frame', 'showpiece'] },
-  { key: 'mugs', name: 'Mugs & Drinkware', slug: 'mugs-drinkware', hue: 200, description: 'Mugs, bottles and sippers for every kind of sip.', keywords: ['mug', 'mugs', 'bottle', 'cup', 'tumbler', 'sipper', 'glass'] },
-  { key: 'hampers', name: 'Gift Hampers', slug: 'gift-hampers', hue: 12, description: 'Curated boxes and baskets ready to gift.', keywords: ['hamper', 'basket', 'combo', 'gift box', 'box'] },
-  { key: 'toys', name: 'Soft Toys & Kids', slug: 'toys-kids', hue: 48, description: 'Cuddly friends and playful learning for little ones.', keywords: ['teddy', 'toy', 'toys', 'soft toy', 'kids', 'puzzle', 'baby'] },
-  { key: 'accessories', name: 'Jewellery & Accessories', slug: 'jewellery-accessories', hue: 280, description: 'Bracelets, wallets and small things with big charm.', keywords: ['bracelet', 'pendant', 'keychain', 'wallet', 'watch', 'earrings', 'ring'] },
-  { key: 'festive', name: 'Festive & Pooja', slug: 'festive-pooja', hue: 38, description: 'Diyas, rakhis and décor for every celebration.', keywords: ['diya', 'rangoli', 'pooja', 'puja', 'rakhi', 'toran', 'lantern', 'diwali'] },
-  { key: 'stationery', name: 'Stationery & Desk', slug: 'stationery-desk', hue: 160, description: 'Planners, organisers and desk upgrades.', keywords: ['diary', 'pen', 'notebook', 'planner', 'desk', 'organiser', 'organizer'] },
+  {
+    key: 'kids',
+    name: 'Kids Return Gifts',
+    slug: 'kids-return-gifts',
+    hue: 48,
+    description: 'Budget-friendly return gifts for birthday parties, Kanjak and school events.',
+    keywords: ['return gift', 'returngift', 'kids', 'birthday party', 'kanjak', 'school', 'toy', 'toys', 'puzzle', 'teddy', 'goodie bag'],
+  },
+  {
+    key: 'general',
+    name: 'General Gifts',
+    slug: 'general-gifts',
+    hue: 340,
+    description: 'Gifts and hampers for every other occasion — anniversaries, festivals, corporate and more.',
+    keywords: ['gift', 'hamper', 'combo', 'decor', 'personalised', 'personalized', 'mug', 'bottle', 'diya', 'rakhi'],
+  },
 ];
 
 interface SeedProduct {
@@ -61,27 +70,28 @@ interface SeedProduct {
 }
 
 const PRODUCTS: SeedProduct[] = [
-  { name: 'Personalised Name Wooden Keychain', category: 'personalised', price: 199, mrp: 349, stock: 50, occasions: ['birthday', 'thank-you'], tags: ['keychain', 'wooden'], bestseller: true, description: 'Laser-engraved pine wood keychain with the name of your choice. Lightweight, sturdy and gift-ready.' },
-  { name: 'Custom Photo Collage Frame (12 Photos)', category: 'personalised', price: 649, mrp: 999, stock: 25, occasions: ['anniversary', 'birthday'], tags: ['photo frame'], featured: true, description: 'A 12-photo collage printed on premium paper in a matte black frame. Share your photos on WhatsApp after ordering.' },
-  { name: 'Engraved Couple Name Night Lamp', category: 'personalised', price: 899, mrp: 1499, stock: 12, occasions: ['anniversary', 'valentines', 'wedding'], tags: ['lamp', 'couple'], bestseller: true, description: 'Warm-white LED acrylic lamp engraved with two names and a date. USB powered.' },
-  { name: 'Aroma Soy Candle Trio', category: 'decor', price: 449, mrp: 699, stock: 40, occasions: ['housewarming', 'diwali', 'thank-you'], tags: ['candles'], description: 'Three hand-poured soy wax candles in vanilla, lavender and sandalwood. Around 20 hours burn time each.' },
-  { name: 'Macramé Wall Hanging', category: 'decor', price: 549, mrp: 899, stock: 15, occasions: ['housewarming'], tags: ['boho', 'wall decor'], description: 'Handwoven cotton macramé on a natural wooden dowel. 45 × 70 cm.' },
-  { name: 'Minimal Desk Clock – Walnut Finish', category: 'decor', price: 799, mrp: 1199, stock: 10, occasions: ['corporate', 'housewarming'], tags: ['clock'], description: 'Silent-sweep table clock with a walnut-finish wooden body.' },
-  { name: 'Magic Colour-Changing Mug', category: 'mugs', price: 299, mrp: 499, stock: 60, occasions: ['birthday', 'valentines'], tags: ['mug'], bestseller: true, description: 'Black ceramic mug that reveals your printed photo when filled with a hot drink. 330 ml.' },
-  { name: 'Insulated Steel Bottle 750 ml', category: 'mugs', price: 549, mrp: 899, stock: 35, occasions: ['corporate'], tags: ['bottle'], featured: true, description: 'Double-wall vacuum insulated bottle keeps drinks hot for 12 hours and cold for 24.' },
-  { name: 'Ceramic Coffee Mug & Coaster Set', category: 'mugs', price: 399, mrp: 599, stock: 2, occasions: ['thank-you', 'corporate'], tags: ['mug', 'coaster'], description: 'Speckled stoneware mug with a matching cork-backed coaster.' },
-  { name: 'Chocolate & Cookie Celebration Hamper', category: 'hampers', price: 1299, mrp: 1799, stock: 20, occasions: ['birthday', 'diwali', 'corporate'], tags: ['hamper', 'chocolates'], bestseller: true, description: 'Assorted chocolates, butter cookies and a greeting card in a reusable kraft box.' },
-  { name: 'Dry Fruit Festive Gift Box', category: 'hampers', price: 1499, mrp: 1999, stock: 18, occasions: ['diwali', 'rakhi', 'corporate'], tags: ['dry fruits'], featured: true, description: 'Almonds, cashews, raisins and pistachios in a four-compartment keepsake box.' },
-  { name: 'Self-Care Spa Hamper', category: 'hampers', price: 1899, mrp: 2499, stock: 8, occasions: ['birthday', 'thank-you'], tags: ['spa', 'self care'], description: 'Bath salts, body butter, a scented candle and a soft towel in a woven basket.' },
-  { name: 'Cuddly Teddy Bear 60 cm', category: 'toys', price: 699, mrp: 999, stock: 22, occasions: ['kids', 'valentines', 'birthday'], tags: ['teddy', 'soft toy'], bestseller: true, description: 'Super-soft plush teddy with a satin bow. Safe for all ages.' },
-  { name: 'Wooden Alphabet Puzzle', category: 'toys', price: 349, mrp: 499, stock: 30, occasions: ['kids'], tags: ['puzzle', 'learning'], description: 'Chunky A–Z wooden puzzle with non-toxic paint, for ages 2+.' },
-  { name: 'Silver-Plated Charm Bracelet', category: 'accessories', price: 599, mrp: 999, stock: 14, occasions: ['birthday', 'rakhi', 'anniversary'], tags: ['bracelet'], description: 'Adjustable chain bracelet with heart, star and moon charms. Comes in a velvet pouch.' },
-  { name: 'Vegan Leather Wallet with Name Engraving', category: 'accessories', price: 749, mrp: 1199, stock: 16, occasions: ['corporate', 'birthday'], tags: ['wallet', 'engraved'], featured: true, description: 'Slim bi-fold wallet with RFID lining and an engraved name on the front.' },
-  { name: 'Brass Diya Set of 4', category: 'festive', price: 399, mrp: 599, stock: 45, occasions: ['diwali'], tags: ['diya', 'brass'], bestseller: true, description: 'Hand-polished brass diyas with a traditional lotus pattern.' },
-  { name: 'Designer Rakhi Set with Roli Chawal', category: 'festive', price: 249, mrp: 399, stock: 70, occasions: ['rakhi'], tags: ['rakhi'], description: 'Two handcrafted rakhis with roli, chawal and a greeting card.' },
-  { name: 'Premium Undated Planner', category: 'stationery', price: 449, mrp: 699, stock: 26, occasions: ['corporate', 'thank-you'], tags: ['planner', 'diary'], description: 'A5 hardbound planner with weekly spreads, habit trackers and 100 gsm paper.' },
-  { name: 'Bamboo Desk Organiser', category: 'stationery', price: 499, mrp: 799, stock: 0, occasions: ['corporate'], tags: ['desk', 'organiser'], description: 'Five-slot bamboo organiser for pens, phone and notes.' },
-  { name: 'Crystal Showpiece (draft)', category: 'decor', price: 999, mrp: 1499, stock: 5, occasions: ['wedding'], tags: ['crystal'], draft: true, description: 'Example draft product — not visible on the website until published.' },
+  { name: 'Personalised Name Wooden Keychain', category: 'kids', price: 199, mrp: 349, stock: 50, occasions: ['birthday', 'thank-you'], tags: ['keychain', 'wooden', 'return gift'], bestseller: true, description: 'Laser-engraved pine wood keychain with the name of your choice. Lightweight, sturdy and gift-ready — a popular birthday return gift.' },
+  { name: 'Cuddly Teddy Bear 25 cm', category: 'kids', price: 249, mrp: 399, stock: 60, occasions: ['birthday', 'kids'], tags: ['teddy', 'soft toy', 'return gift'], bestseller: true, description: 'Soft plush mini teddy with a satin bow — a favourite party return gift. Safe for all ages.' },
+  { name: 'Wooden Alphabet Puzzle', category: 'kids', price: 349, mrp: 499, stock: 30, occasions: ['kids', 'birthday'], tags: ['puzzle', 'learning', 'return gift'], description: 'Chunky A–Z wooden puzzle with non-toxic paint, for ages 2+. A fun and useful return gift.' },
+  { name: 'Return Gift Combo – Notebook & Pencil Set', category: 'kids', price: 99, mrp: 179, stock: 100, occasions: ['birthday', 'kids'], tags: ['stationery', 'return gift', 'combo'], bestseller: true, description: 'A mini notebook, pencil and eraser set packed as a ready-to-hand-out birthday return gift.' },
+  { name: 'Cartoon Print Kids Water Bottle', category: 'kids', price: 179, mrp: 299, stock: 45, occasions: ['kids', 'birthday'], tags: ['bottle', 'kids', 'return gift'], description: 'Leak-proof 500ml bottle with fun cartoon prints — light, useful and loved by kids.' },
+  { name: 'Kanjak Gift Set for Little Girls', category: 'kids', price: 149, mrp: 249, stock: 40, occasions: ['kids'], tags: ['kanjak', 'return gift'], description: 'A cute mix of bangles, a hair clip and a small toy — ready to hand out during Kanjak/Navratri.' },
+  { name: 'Custom Photo Collage Frame (12 Photos)', category: 'general', price: 649, mrp: 999, stock: 25, occasions: ['anniversary', 'birthday'], tags: ['photo frame'], featured: true, description: 'A 12-photo collage printed on premium paper in a matte black frame. Share your photos on WhatsApp after ordering.' },
+  { name: 'Engraved Couple Name Night Lamp', category: 'general', price: 899, mrp: 1499, stock: 12, occasions: ['anniversary', 'valentines', 'wedding'], tags: ['lamp', 'couple'], bestseller: true, description: 'Warm-white LED acrylic lamp engraved with two names and a date. USB powered.' },
+  { name: 'Aroma Soy Candle Trio', category: 'general', price: 449, mrp: 699, stock: 40, occasions: ['housewarming', 'diwali', 'thank-you'], tags: ['candles'], description: 'Three hand-poured soy wax candles in vanilla, lavender and sandalwood. Around 20 hours burn time each.' },
+  { name: 'Macramé Wall Hanging', category: 'general', price: 549, mrp: 899, stock: 15, occasions: ['housewarming'], tags: ['boho', 'wall decor'], description: 'Handwoven cotton macramé on a natural wooden dowel. 45 × 70 cm.' },
+  { name: 'Magic Colour-Changing Mug', category: 'general', price: 299, mrp: 499, stock: 60, occasions: ['birthday', 'valentines'], tags: ['mug'], bestseller: true, description: 'Black ceramic mug that reveals your printed photo when filled with a hot drink. 330 ml.' },
+  { name: 'Insulated Steel Bottle 750 ml', category: 'general', price: 549, mrp: 899, stock: 35, occasions: ['corporate'], tags: ['bottle'], featured: true, description: 'Double-wall vacuum insulated bottle keeps drinks hot for 12 hours and cold for 24.' },
+  { name: 'Chocolate & Cookie Celebration Hamper', category: 'general', price: 1299, mrp: 1799, stock: 20, occasions: ['birthday', 'diwali', 'corporate'], tags: ['hamper', 'chocolates'], bestseller: true, description: 'Assorted chocolates, butter cookies and a greeting card in a reusable kraft box.' },
+  { name: 'Dry Fruit Festive Gift Box', category: 'general', price: 1499, mrp: 1999, stock: 18, occasions: ['diwali', 'rakhi', 'corporate'], tags: ['dry fruits'], featured: true, description: 'Almonds, cashews, raisins and pistachios in a four-compartment keepsake box.' },
+  { name: 'Self-Care Spa Hamper', category: 'general', price: 1899, mrp: 2499, stock: 8, occasions: ['birthday', 'thank-you'], tags: ['spa', 'self care'], description: 'Bath salts, body butter, a scented candle and a soft towel in a woven basket.' },
+  { name: 'Silver-Plated Charm Bracelet', category: 'general', price: 599, mrp: 999, stock: 14, occasions: ['birthday', 'rakhi', 'anniversary'], tags: ['bracelet'], description: 'Adjustable chain bracelet with heart, star and moon charms. Comes in a velvet pouch.' },
+  { name: 'Vegan Leather Wallet with Name Engraving', category: 'general', price: 749, mrp: 1199, stock: 16, occasions: ['corporate', 'birthday'], tags: ['wallet', 'engraved'], featured: true, description: 'Slim bi-fold wallet with RFID lining and an engraved name on the front.' },
+  { name: 'Brass Diya Set of 4', category: 'general', price: 399, mrp: 599, stock: 45, occasions: ['diwali'], tags: ['diya', 'brass'], bestseller: true, description: 'Hand-polished brass diyas with a traditional lotus pattern.' },
+  { name: 'Designer Rakhi Set with Roli Chawal', category: 'general', price: 249, mrp: 399, stock: 70, occasions: ['rakhi'], tags: ['rakhi'], description: 'Two handcrafted rakhis with roli, chawal and a greeting card.' },
+  { name: 'Premium Undated Planner', category: 'general', price: 449, mrp: 699, stock: 26, occasions: ['corporate', 'thank-you'], tags: ['planner', 'diary'], description: 'A5 hardbound planner with weekly spreads, habit trackers and 100 gsm paper.' },
+  { name: 'Bamboo Desk Organiser', category: 'general', price: 499, mrp: 799, stock: 0, occasions: ['corporate'], tags: ['desk', 'organiser'], description: 'Five-slot bamboo organiser for pens, phone and notes.' },
+  { name: 'Crystal Showpiece (draft)', category: 'general', price: 999, mrp: 1499, stock: 5, occasions: ['wedding'], tags: ['crystal'], draft: true, description: 'Example draft product — not visible on the website until published.' },
 ];
 
 async function seedAdmin() {
@@ -97,6 +107,7 @@ async function seedSettings(categoryIds: Record<string, string>) {
   const adminEmails = csv(process.env.STORE_ADMIN_EMAILS);
   await repos.settings.put('store', {
     ...store,
+    ...(process.env.STORE_NAME ? { storeName: process.env.STORE_NAME } : {}),
     ...(process.env.STORE_WHATSAPP_NUMBER ? { whatsappNumber: process.env.STORE_WHATSAPP_NUMBER } : {}),
     ...(process.env.STORE_SUPPORT_EMAIL ? { supportEmail: process.env.STORE_SUPPORT_EMAIL } : {}),
     ...(process.env.STORE_SUPPORT_PHONE ? { supportPhone: process.env.STORE_SUPPORT_PHONE } : {}),
@@ -116,9 +127,20 @@ async function seedSettings(categoryIds: Record<string, string>) {
 }
 
 async function seedCatalog(): Promise<Record<string, string>> {
-  const existing = await repos.categories.list();
-  if (existing.length && !force) {
-    console.log(`• ${existing.length} categories already exist — skipping catalog (use --force to add again)`);
+  let existing = await repos.categories.list();
+
+  if (reset) {
+    console.log('--reset: deleting all existing products and categories first');
+    for (const status of ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const) {
+      const items = await repos.products.listAllByStatus(status);
+      for (const p of items) await repos.products.delete(p.id);
+    }
+    for (const c of existing) await repos.categories.delete(c.id).catch(() => undefined);
+    existing = [];
+  }
+
+  if (existing.length && !force && !reset) {
+    console.log(`• ${existing.length} categories already exist — skipping catalog (use --force or --reset)`);
     return Object.fromEntries(
       CATEGORIES.map((c) => [c.key, existing.find((e) => e.slug === c.slug)?.id]).filter(([, id]) => id),
     ) as Record<string, string>;

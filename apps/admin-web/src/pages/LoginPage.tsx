@@ -35,7 +35,7 @@ export function LoginPage() {
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg ring-1 ring-slate-200">
         <div className="mb-6 text-center">
           <div className="text-4xl">🎁</div>
-          <h1 className="mt-2 text-xl font-semibold">GiftNJoys Admin</h1>
+          <h1 className="mt-2 text-xl font-semibold">SmileBox Admin</h1>
           <p className="text-sm text-slate-500">Sign in to manage orders and inventory</p>
         </div>
         <div className="space-y-4">

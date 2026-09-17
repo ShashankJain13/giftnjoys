@@ -28,7 +28,7 @@ const envSchema = z
     EMAIL_TRANSPORT: z.enum(['smtp', 'ses', 'log']).default('smtp'),
     SMTP_HOST: z.string().default('localhost'),
     SMTP_PORT: z.coerce.number().int().default(1025),
-    EMAIL_FROM: z.string().min(3).default('GiftNJoys <orders@giftnjoys.local>'),
+    EMAIL_FROM: z.string().min(3).default('SmileBox <orders@smilebox.local>'),
 
     QUEUE_MODE: z.enum(['inprocess', 'sqs']).default('inprocess'),
     NOTIFICATIONS_QUEUE_URL: z.string().optional(),

@@ -84,7 +84,7 @@ export async function api<T>(path: string, { method = 'GET', body, signal }: Req
   return data as T;
 }
 
-export type UploadPurpose = 'product-image' | 'category-image' | 'banner-image' | 'import';
+export type UploadPurpose = 'product-image' | 'product-video' | 'category-image' | 'banner-image' | 'import';
 
 /** Presigned POST straight to S3/MinIO, with progress. */
 export async function uploadFile(

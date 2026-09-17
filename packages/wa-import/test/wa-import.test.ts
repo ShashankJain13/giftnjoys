@@ -66,7 +66,7 @@ describe('parseChat', () => {
     const messages = parseChat(fixture('ios-chat.txt'));
     expect(messages[1]?.sender).toBe('Meena Crafts');
     expect(messages[1]?.attachments).toEqual(['00000011-PHOTO-2026-09-17-11-02-10.jpg']);
-    expect(messages[3]?.mediaOmitted).toBe(true);
+    expect(messages[3]?.mediaOmitted).toBe(1);
     expect(messages.at(-1)?.text).toBe('Available in 3 colours');
     expect(messages[0]?.system).toBe(true);
   });
@@ -126,7 +126,7 @@ describe('readChatExport', () => {
       'WhatsApp Chat with Wholesale Gift Deals.txt': strToU8(fixture('android-chat.txt')),
       'IMG-20260917-WA0001.jpg': fakeJpeg(1),
       'IMG-20260917-WA0002.jpg': fakeJpeg(2),
-      'VID-20260917-WA0009.mp4': new Uint8Array([0, 0, 0]),
+      'notes.docx': new Uint8Array([0, 0, 0]), // unsupported extension, must be ignored
       '../escape.jpg': fakeJpeg(9),
     });
     const exp = readChatExport(zip);

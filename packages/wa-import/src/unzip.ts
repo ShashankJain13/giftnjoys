@@ -10,10 +10,10 @@ export interface ExportLimits {
 export const DEFAULT_LIMITS: ExportLimits = {
   maxFiles: 5000,
   maxTotalBytes: 1024 * 1024 * 1024, // 1 GB uncompressed
-  maxFileBytes: 25 * 1024 * 1024,
+  maxFileBytes: 64 * 1024 * 1024, // WhatsApp videos run larger than photos
 };
 
-const ALLOWED_EXTENSIONS = new Set(['.txt', '.jpg', '.jpeg', '.png', '.webp']);
+const ALLOWED_EXTENSIONS = new Set(['.txt', '.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mov']);
 
 const isZip = (bytes: Uint8Array) => bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
 
@@ -103,4 +103,13 @@ export function sniffImageType(bytes: Uint8Array): 'image/jpeg' | 'image/png' | 
     return 'image/webp';
   }
   return undefined;
+}
+
+/** Detects video type from magic bytes (an MP4/MOV "ftyp" box, or the QuickTime "moov"/"mdat" atoms). */
+export function sniffVideoType(bytes: Uint8Array): 'video/mp4' | 'video/quicktime' | undefined {
+  if (bytes.length < 12) return undefined;
+  const boxType = String.fromCharCode(...bytes.slice(4, 8));
+  if (boxType !== 'ftyp') return undefined;
+  const brand = String.fromCharCode(...bytes.slice(8, 12));
+  return brand === 'qt  ' ? 'video/quicktime' : 'video/mp4';
 }

@@ -14,13 +14,16 @@ const SENDER_BODY = /^([^:\n]{1,80}?):\s([\s\S]*)$/;
 
 const ANDROID_ATTACHMENT = /^(.+?\.[a-z0-9]{2,5})\s*\(file attached\)\s*$/i;
 const IOS_ATTACHMENT = /<attached:\s*([^>]+?)\s*>/gi;
-const MEDIA_OMITTED = /^(?:<media omitted>|(?:image|video|audio|sticker|gif|document|contact card)\s+omitted)$/i;
+// Unanchored + global: on iOS, a caption message that has exactly one attached photo often ends
+// with "...caption text ‎image omitted" on the SAME line rather than as its own message, so the
+// marker must be found and stripped wherever it appears, not just when it is the whole line.
+const MEDIA_OMITTED = /<media omitted>|\b(?:image|video|audio|sticker|gif|document|contact card)\s+omitted\b/gi;
 const EDITED_MARKER = /\s*<this message was edited>\s*$/i;
 
 const SYSTEM_PATTERNS = [
   /messages and calls are end-to-end encrypted/i,
   /\bcreated (?:this )?group\b/i,
-  /joined using (?:this group's |a group )?invite link/i,
+  /joined using (?:this group's invite link|an? group\s*(?:invite\s*)?link|an invite link)/i,
   /^this message was deleted\.?$/i,
   /^you deleted this message\.?$/i,
   /\bchanged (?:the|this group's) (?:subject|icon|description|settings)\b/i,
@@ -128,13 +131,13 @@ export function parseChat(rawText: string, opts: { dateOrder?: DateOrder | 'auto
 function toMessage(index: number, timestamp: Date, body: string): ChatMessage {
   const senderMatch = SENDER_BODY.exec(body);
   if (!senderMatch) {
-    return { index, timestamp, sender: '', text: body.trim(), attachments: [], mediaOmitted: false, system: true };
+    return { index, timestamp, sender: '', text: body.trim(), attachments: [], mediaOmitted: 0, system: true };
   }
   const sender = normaliseSender(senderMatch[1]!);
   const content = senderMatch[2]!.replace(EDITED_MARKER, '');
 
   const attachments: string[] = [];
-  let mediaOmitted = false;
+  let mediaOmitted = 0;
   const textLines: string[] = [];
 
   for (const rawLine of content.split('\n')) {
@@ -146,15 +149,19 @@ function toMessage(index: number, timestamp: Date, body: string): ChatMessage {
       attachments.push(basename(android[1]!));
       continue;
     }
-    if (MEDIA_OMITTED.test(line)) {
-      mediaOmitted = true;
-      continue;
+    // The omitted-media marker can be the whole line (a standalone dropped attachment) or trail
+    // the end of a caption line (one photo sent together with its caption) — strip it either way
+    // and keep any real caption text that remains.
+    const omittedHere = line.match(MEDIA_OMITTED);
+    if (omittedHere) {
+      mediaOmitted += omittedHere.length;
+      line = line.replace(MEDIA_OMITTED, '').trim();
     }
-    textLines.push(line.replace(EDITED_MARKER, ''));
+    if (line) textLines.push(line.replace(EDITED_MARKER, ''));
   }
 
   const text = textLines.join('\n').trim();
-  const system = attachments.length === 0 && !mediaOmitted && SYSTEM_PATTERNS.some((p) => p.test(text));
+  const system = attachments.length === 0 && mediaOmitted === 0 && SYSTEM_PATTERNS.some((p) => p.test(text));
   return { index, timestamp, sender, text, attachments, mediaOmitted, system };
 }
 

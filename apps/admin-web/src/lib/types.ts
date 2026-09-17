@@ -12,8 +12,9 @@ import type {
   StoreSettings,
 } from '@gnj/core/schemas';
 
-export type ProductDto = Omit<Product, 'images'> & {
+export type ProductDto = Omit<Product, 'images' | 'videos'> & {
   images: Array<{ key: string; url: string }>;
+  videos: Array<{ key: string; url: string }>;
   discountPct: number;
 };
 

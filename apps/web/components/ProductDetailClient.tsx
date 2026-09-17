@@ -1,32 +1,47 @@
 'use client';
 
 import { waLink } from '@gnj/core/whatsapp';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Play, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useCart } from '@/lib/cart';
 import type { Product } from '@/lib/types';
 import { AddToCartButton } from './AddToCartButton';
 
-export function ProductGallery({ images, name }: { images: string[]; name: string }) {
+type Slide = { type: 'image' | 'video'; src: string };
+
+export function ProductGallery({ images, videos = [], name }: { images: string[]; videos?: string[]; name: string }) {
   const [active, setActive] = useState(0);
-  const src = images[active];
+  const slides: Slide[] = [...images.map((src) => ({ type: 'image' as const, src })), ...videos.map((src) => ({ type: 'video' as const, src }))];
+  const slide = slides[active];
   return (
     <div>
       <div className="aspect-square overflow-hidden rounded-3xl bg-brand-50 ring-1 ring-black/5">
-        {src ? <img src={src} alt={name} className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-8xl">🎁</div>}
+        {slide?.type === 'image' ? (
+          <img src={slide.src} alt={name} className="size-full object-cover" />
+        ) : slide?.type === 'video' ? (
+          <video src={slide.src} controls playsInline className="size-full object-cover" />
+        ) : (
+          <div className="flex size-full items-center justify-center text-8xl">🎁</div>
+        )}
       </div>
-      {images.length > 1 && (
+      {slides.length > 1 && (
         <div className="mt-3 flex gap-2 overflow-x-auto">
-          {images.map((img, i) => (
+          {slides.map((s, i) => (
             <button
-              key={img}
+              key={s.src}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`Show image ${i + 1}`}
-              className={`size-20 shrink-0 overflow-hidden rounded-xl ring-2 ${i === active ? 'ring-brand-600' : 'ring-transparent hover:ring-brand-200'}`}
+              aria-label={s.type === 'video' ? 'Play video' : `Show image ${i + 1}`}
+              className={`relative size-20 shrink-0 overflow-hidden rounded-xl ring-2 ${i === active ? 'ring-brand-600' : 'ring-transparent hover:ring-brand-200'}`}
             >
-              <img src={img} alt="" className="size-full object-cover" />
+              {s.type === 'image' ? (
+                <img src={s.src} alt="" className="size-full object-cover" />
+              ) : (
+                <span className="flex size-full items-center justify-center bg-ink text-white">
+                  <Play className="size-6" fill="currentColor" />
+                </span>
+              )}
             </button>
           ))}
         </div>

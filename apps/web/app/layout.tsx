@@ -7,7 +7,7 @@ import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings().catch(() => null);
-  const name = settings?.storeName ?? 'GiftNJoys';
+  const name = settings?.storeName ?? 'SmileBox';
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: `${name} — ${settings?.tagline ?? 'Gifts for every occasion'}`, template: `%s | ${name}` },

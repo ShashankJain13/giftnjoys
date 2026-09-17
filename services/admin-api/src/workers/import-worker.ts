@@ -3,7 +3,13 @@ import { buildCandidates, ImportError, readChatExport } from '@gnj/wa-import';
 import { createHash } from 'node:crypto';
 import type { AppContext } from '../context';
 
-const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+};
 const STALE_PROCESSING_MS = 15 * 60 * 1000;
 
 /**
@@ -33,6 +39,7 @@ export async function processImportJob(ctx: AppContext, jobId: string): Promise<
     withoutImage: 0,
     withoutPrice: 0,
     imagesUploaded: 0,
+    videosUploaded: 0,
   };
 
   try {
@@ -71,8 +78,17 @@ export async function processImportJob(ctx: AppContext, jobId: string): Promise<
           return { key };
         }),
       );
+      const videos = await Promise.all(
+        candidate.videos.map(async (vid, i) => {
+          const digest = createHash('sha256').update(vid.bytes).digest('hex').slice(0, 16);
+          const key = `products/imports/${job.id}/${digest}-video-${i + 1}.${EXT[vid.contentType]}`;
+          await ctx.storage.putObject('media', key, vid.bytes, vid.contentType);
+          return { key };
+        }),
+      );
       stats.imagesUploaded += images.length;
-      if (images.length === 0) stats.withoutImage++;
+      stats.videosUploaded += videos.length;
+      if (images.length === 0 && videos.length === 0) stats.withoutImage++;
       if (candidate.price === undefined) stats.withoutPrice++;
 
       const price = candidate.price ?? 0;
@@ -84,10 +100,13 @@ export async function processImportJob(ctx: AppContext, jobId: string): Promise<
           price,
           ...(candidate.mrp !== undefined && candidate.mrp >= price ? { mrp: candidate.mrp } : {}),
           ...(candidate.moq !== undefined ? { moq: candidate.moq } : {}),
+          ...(candidate.color ? { color: candidate.color } : {}),
+          ...(candidate.size ? { size: candidate.size } : {}),
           ...(candidate.categoryId ? { categoryId: candidate.categoryId } : {}),
           tags: candidate.tags.slice(0, 30),
           stockQty: importSettings.defaultStockQty,
           images,
+          videos,
         },
         {
           source: 'WHATSAPP',

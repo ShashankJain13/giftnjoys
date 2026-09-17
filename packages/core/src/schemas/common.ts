@@ -18,6 +18,7 @@ export const slugSchema = z
 
 export const idSchema = z.string().trim().min(1).max(64);
 
+/** A stored media object by S3 key — used for both product images and product videos. */
 export const imageRefSchema = z.object({
   key: z
     .string()

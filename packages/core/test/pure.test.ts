@@ -168,7 +168,7 @@ describe('schemas', () => {
 
   it('settings schemas are fully defaulted', () => {
     const store = storeSettingsSchema.parse({});
-    expect(store.storeName).toBe('GiftNJoys');
+    expect(store.storeName).toBe('SmileBox');
     expect(store.adminEmails.length).toBeGreaterThan(0);
   });
 });

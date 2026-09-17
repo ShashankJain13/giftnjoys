@@ -18,7 +18,11 @@ export interface Product {
   lowStock: boolean;
   stockLeft?: number;
   moq?: number;
+  color?: string;
+  size?: string;
+  style?: string;
   images: string[];
+  videos: string[];
   category: CategoryRef | null;
   tags: string[];
   occasions: OccasionSlug[];

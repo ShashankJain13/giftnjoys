@@ -7,8 +7,8 @@ export interface ChatMessage {
   text: string;
   /** Attachment file names referenced by the message (basename as found in the export). */
   attachments: string[];
-  /** Export was made without media, or the media type was omitted. */
-  mediaOmitted: boolean;
+  /** Count of omitted-media markers found in this message (usually 0 or 1, occasionally more). */
+  mediaOmitted: number;
   system: boolean;
 }
 
@@ -26,6 +26,8 @@ export interface ExtractedFields {
   price?: number;
   mrp?: number;
   moq?: number;
+  color?: string;
+  size?: string;
   tags: string[];
   warnings: string[];
 }
@@ -36,6 +38,12 @@ export interface CandidateImage {
   bytes: Uint8Array;
 }
 
+export interface CandidateVideo {
+  filename: string;
+  contentType: 'video/mp4' | 'video/quicktime';
+  bytes: Uint8Array;
+}
+
 export interface ImportCandidate {
   postedAt: string;
   name?: string;
@@ -43,9 +51,12 @@ export interface ImportCandidate {
   price?: number;
   mrp?: number;
   moq?: number;
+  color?: string;
+  size?: string;
   tags: string[];
   categoryId?: string;
   images: CandidateImage[];
+  videos: CandidateVideo[];
   /** Referenced images that were omitted from the export or could not be used. */
   missingImages: number;
   rawText: string;

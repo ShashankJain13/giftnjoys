@@ -10,6 +10,7 @@ import {
   presignUploadSchema,
   SETTINGS_KEYS,
   unauthorized,
+  VIDEO_CONTENT_TYPES,
 } from '@gnj/core';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -18,6 +19,7 @@ import type { AppContext } from '../context';
 import { parseBody, toOrderSummary, toProductDto, type AdminEnv } from '../http';
 
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 64 * 1024 * 1024;
 const IMPORT_MAX_BYTES = 200 * 1024 * 1024;
 
 const EXTENSIONS: Record<string, string> = {
@@ -25,6 +27,8 @@ const EXTENSIONS: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
 };
 
 function safeFilename(name: string): string {
@@ -85,6 +89,20 @@ export function uploadRoutes(ctx: AppContext) {
       const key = `imports/${datePath}/${newId()}-${safeFilename(input.filename)}`;
       const upload = await ctx.storage.presignPost({ bucket: 'imports', key, contentType, maxBytes: IMPORT_MAX_BYTES });
       return c.json(upload);
+    }
+
+    if (input.purpose === 'product-video') {
+      if (!(VIDEO_CONTENT_TYPES as readonly string[]).includes(input.contentType)) {
+        throw badRequest('Videos must be MP4 or MOV');
+      }
+      const key = `products/videos/${datePath}/${newId()}.${EXTENSIONS[input.contentType]}`;
+      const upload = await ctx.storage.presignPost({
+        bucket: 'media',
+        key,
+        contentType: input.contentType,
+        maxBytes: VIDEO_MAX_BYTES,
+      });
+      return c.json({ ...upload, publicUrl: ctx.storage.publicUrl(key) });
     }
 
     if (!(IMAGE_CONTENT_TYPES as readonly string[]).includes(input.contentType)) {

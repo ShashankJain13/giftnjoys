@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { moneySchema } from './common';
 
 export const storeSettingsSchema = z.object({
-  storeName: z.string().trim().min(2).max(60).default('GiftNJoys'),
+  storeName: z.string().trim().min(2).max(60).default('SmileBox'),
   tagline: z.string().trim().max(120).default('Thoughtful gifts for every occasion'),
   /** Business WhatsApp number with country code, digits only (e.g. 919876543210). */
   whatsappNumber: z
@@ -10,13 +10,13 @@ export const storeSettingsSchema = z.object({
     .trim()
     .regex(/^\d{10,15}$/, 'Digits only, with country code (e.g. 919876543210)')
     .default('919999999999'),
-  supportEmail: z.string().trim().toLowerCase().pipe(z.email()).default('support@giftnjoys.local'),
+  supportEmail: z.string().trim().toLowerCase().pipe(z.email()).default('support@smilebox.local'),
   supportPhone: z.string().trim().max(20).default(''),
   adminEmails: z
     .array(z.string().trim().toLowerCase().pipe(z.email()))
     .min(1, 'Add at least one admin email')
     .max(10)
-    .default(['admin@giftnjoys.local']),
+    .default(['admin@smilebox.local']),
   announcement: z.string().trim().max(160).default('Free shipping above ₹999 · Gift wrapping available'),
   address: z.string().trim().max(300).default(''),
   instagramUrl: z.string().trim().max(200).default(''),

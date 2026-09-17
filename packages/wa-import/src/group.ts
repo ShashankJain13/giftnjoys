@@ -42,7 +42,7 @@ export function groupMessages(messages: ChatMessage[], windowMinutes: number): M
     if (m.system) continue;
     const meaningful = isMeaningful(m.text);
     const priced = meaningful && hasPrice(m.text);
-    const hasMedia = m.attachments.length > 0 || m.mediaOmitted;
+    const hasMedia = m.attachments.length > 0 || m.mediaOmitted > 0;
     if (!hasMedia && !meaningful) continue;
 
     const continues =
@@ -66,7 +66,7 @@ export function groupMessages(messages: ChatMessage[], windowMinutes: number): M
     }
     const g = current!;
     g.attachments.push(...m.attachments);
-    if (m.mediaOmitted) g.mediaOmitted++;
+    g.mediaOmitted += m.mediaOmitted;
     if (meaningful) g.texts.push(m.text);
     g.hasPrice ||= priced;
     g.lastAt = m.timestamp;

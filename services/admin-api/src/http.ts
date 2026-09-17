@@ -39,6 +39,7 @@ export function toProductDto(ctx: AppContext, p: Product) {
   return {
     ...p,
     images: p.images.map((img) => ({ key: img.key, url: ctx.storage.publicUrl(img.key) })),
+    videos: p.videos.map((v) => ({ key: v.key, url: ctx.storage.publicUrl(v.key) })),
     discountPct: discountPct(p.price, p.mrp),
   };
 }

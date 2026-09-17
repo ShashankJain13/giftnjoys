@@ -1,6 +1,6 @@
 import type { ExtractedFields } from './types';
 
-const CURRENCY = String.raw`(?:₹|rs\.?|inr|rupees?)`;
+const CURRENCY = String.raw`(?:₹|\brs\b\.?|\binr\b|\brupees?\b)`;
 const NUM = String.raw`(\d{1,3}(?:,\d{2,3})+|\d+)(?:\.(\d{1,2}))?`;
 const SEP = String.raw`(?:\s*(?:[:=\-–@]|is)\s*|\s+)?`;
 
@@ -14,11 +14,15 @@ const CURRENCY_PREFIX_RE = new RegExp(String.raw`${CURRENCY}\s*${NUM}`, 'gi');
 const CURRENCY_SUFFIX_RE = new RegExp(String.raw`${NUM}\s*(?:\/-|₹|\brs\b\.?|\brupees?\b|\binr\b)`, 'gi');
 const MOQ_RE =
   /\b(?:moq|min(?:imum)?\.?\s*(?:order|qty|quantity))\s*(?:[:=\-–]|is|of)?\s*(\d{1,6})/i;
+// Only matches an explicit "Colour: ..." / "Size: ..." label — sellers rarely phrase these any
+// other way reliably enough to extract safely, so unlabelled mentions are left for the admin to fill in.
+const COLOR_RE = /\bcolou?rs?\s*(?:available)?\s*[:\-]\s*([^\n#]{2,60})/i;
+const SIZE_RE = /\bsizes?\s*(?:available)?\s*[:\-]\s*([^\n#]{2,60})/i;
 const HASHTAG_RE = /#([\p{L}\p{N}_]{2,40})/gu;
 const EMOJI_RE = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu;
 const NAME_LABEL_RE = /^(?:product\s*name|item\s*name|product|item|name|title)\s*[:\-–]\s*/i;
 const FILLER_LINE_RE =
-  /^(?:new\s*(?:arrival|launch|stock)s?|available(?:\s*now)?|in\s*stock|limited\s*stock|hot\s*selling|best\s*sell(?:er|ing)|trending(?:\s*now)?|sale|offer|combo|wholesale|retail|dm\s*(?:for|to)\s*order|order\s*now|book\s*now)[!.\s]*$/i;
+  /^(?:new\s*(?:arrival|launch|stock)s?(?:\s*alert)?|new\s*product\s*alert|most\s*(?:in\s*)?demanding\s*product|we\s*are\s*excited\s*to\s*(?:launch|introduce|announce)(?:\s+our\s+latest\s+product)?|available(?:\s*now)?|in\s*stock|restocked|limited\s*stock(?:\s*available)?|hot\s*selling|best\s*sell(?:er|ing)|trending(?:\s*now)?|sale|offer|combo|wholesale|retail|dm\s*(?:for|to)\s*order|order\s*now|book\s*now|grab\s*(?:it|yours?)\s*now|don.t\s*miss\s*it|attention|good\s*news|exciting\s*news|big\s*news)[!.\s]*$/i;
 
 function toNumber(intPart: string, fraction?: string): number {
   return Number(`${intPart.replace(/,/g, '')}${fraction ? `.${fraction}` : ''}`);
@@ -105,6 +109,12 @@ export function extractFields(text: string): ExtractedFields {
   const moqMatch = MOQ_RE.exec(text);
   const moq = moqMatch ? Number(moqMatch[1]) : undefined;
 
+  const trimLabelValue = (v: string) => v.replace(/[.!\s]+$/, '').trim();
+  const colorMatch = COLOR_RE.exec(text);
+  const color = colorMatch ? trimLabelValue(colorMatch[1]!) : undefined;
+  const sizeMatch = SIZE_RE.exec(text);
+  const size = sizeMatch ? trimLabelValue(sizeMatch[1]!) : undefined;
+
   const tags = [...new Set([...text.matchAll(HASHTAG_RE)].map((m) => m[1]!.toLowerCase()))];
 
   const lines = text.split('\n');
@@ -136,6 +146,8 @@ export function extractFields(text: string): ExtractedFields {
     ...(price !== undefined ? { price } : {}),
     ...(mrp !== undefined ? { mrp } : {}),
     ...(moq !== undefined ? { moq } : {}),
+    ...(color ? { color } : {}),
+    ...(size ? { size } : {}),
     tags,
     warnings,
   };

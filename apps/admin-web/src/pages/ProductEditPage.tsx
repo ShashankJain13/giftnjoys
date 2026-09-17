@@ -6,6 +6,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ImageUploader, type UploadedImage } from '../components/ImageUploader';
 import { ConfidenceBadge, ProductStatusBadge } from '../components/status';
+import { VideoUploader } from '../components/VideoUploader';
 import { Alert, Button, Card, Checkbox, Field, Input, Modal, PageHeader, Select, Spinner, Textarea, cx } from '../components/ui';
 import { api, ApiError, errorMessage, PUBLIC_SITE_URL } from '../lib/api';
 import type { CategoryDto, ProductDto } from '../lib/types';
@@ -20,11 +21,15 @@ interface FormState {
   stockQty: string;
   sku: string;
   moq: string;
+  color: string;
+  size: string;
+  style: string;
   tags: string;
   occasions: OccasionSlug[];
   isFeatured: boolean;
   isBestseller: boolean;
   images: UploadedImage[];
+  videos: UploadedImage[];
 }
 
 const empty: FormState = {
@@ -37,11 +42,15 @@ const empty: FormState = {
   stockQty: '10',
   sku: '',
   moq: '',
+  color: '',
+  size: '',
+  style: '',
   tags: '',
   occasions: [],
   isFeatured: false,
   isBestseller: false,
   images: [],
+  videos: [],
 };
 
 function fromProduct(p: ProductDto): FormState {
@@ -55,11 +64,15 @@ function fromProduct(p: ProductDto): FormState {
     stockQty: String(p.stockQty),
     sku: p.sku ?? '',
     moq: p.moq !== undefined ? String(p.moq) : '',
+    color: p.color ?? '',
+    size: p.size ?? '',
+    style: p.style ?? '',
     tags: p.tags.join(', '),
     occasions: p.occasions,
     isFeatured: p.isFeatured,
     isBestseller: p.isBestseller,
     images: p.images,
+    videos: p.videos,
   };
 }
 
@@ -76,11 +89,15 @@ function toPayload(f: FormState, original?: ProductDto) {
     stockQty: Number(f.stockQty || 0),
     sku: f.sku.trim() || null,
     moq: num(f.moq),
+    color: f.color.trim() || null,
+    size: f.size.trim() || null,
+    style: f.style.trim() || null,
     tags: f.tags.split(',').map((t) => t.trim()).filter(Boolean),
     occasions: f.occasions,
     isFeatured: f.isFeatured,
     isBestseller: f.isBestseller,
     images: f.images.map(({ key }) => ({ key })),
+    videos: f.videos.map(({ key }) => ({ key })),
   };
 }
 
@@ -238,6 +255,10 @@ export function ProductEditPage() {
             <ImageUploader images={form.images} onChange={(imgs) => set('images', imgs)} />
           </Card>
 
+          <Card title="Video" >
+            <VideoUploader videos={form.videos} onChange={(v) => set('videos', v)} />
+          </Card>
+
           <Card title="Pricing & inventory">
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Selling price (₹)" error={errors.price}>
@@ -249,11 +270,25 @@ export function ProductEditPage() {
               <Field label="Stock quantity" error={errors.stockQty}>
                 <Input type="number" min="0" step="1" value={form.stockQty} onChange={(e) => set('stockQty', e.target.value)} invalid={!!errors.stockQty} />
               </Field>
-              <Field label="SKU" error={errors.sku}>
+              <Field label="SKU" error={errors.sku} hint="Auto-generated if left blank">
                 <Input value={form.sku} onChange={(e) => set('sku', e.target.value)} />
               </Field>
               <Field label="Min. order qty" error={errors.moq}>
                 <Input type="number" min="1" step="1" value={form.moq} onChange={(e) => set('moq', e.target.value)} />
+              </Field>
+            </div>
+          </Card>
+
+          <Card title="Variants">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Colour" error={errors.color} hint="e.g. Red, Blue, Multicolor">
+                <Input value={form.color} onChange={(e) => set('color', e.target.value)} />
+              </Field>
+              <Field label="Size" error={errors.size} hint="e.g. Small, Medium, Large">
+                <Input value={form.size} onChange={(e) => set('size', e.target.value)} />
+              </Field>
+              <Field label="Style" error={errors.style} hint="e.g. Cartoon Print">
+                <Input value={form.style} onChange={(e) => set('style', e.target.value)} />
               </Field>
             </div>
           </Card>

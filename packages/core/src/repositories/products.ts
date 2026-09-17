@@ -19,7 +19,7 @@ import {
   type ProductStatus,
   type ProductUpdateInput,
 } from '../schemas/product';
-import { chunk, decodeCursor, encodeCursor, newId, nowIso, slugify } from '../util';
+import { chunk, decodeCursor, encodeCursor, generateSku, newId, nowIso, slugify } from '../util';
 import { metaKeys } from './meta';
 
 export interface Page<T> {
@@ -166,8 +166,9 @@ export class ProductsRepository {
 
   async create(input: ProductCreateInput, imported: ImportedFields = {}): Promise<Product> {
     const now = nowIso();
+    const id = newId();
     const product: Product = compact({
-      id: newId(),
+      id,
       slug: '',
       name: input.name,
       description: input.description ?? '',
@@ -175,9 +176,15 @@ export class ProductsRepository {
       price: input.price,
       mrp: input.mrp ?? undefined,
       stockQty: input.stockQty ?? 0,
-      sku: input.sku ?? undefined,
+      // Every product gets a visible, unique code even if the admin never sets one, so it's easy
+      // to reference (e.g. when spotting possible duplicates from a WhatsApp import).
+      sku: input.sku ?? generateSku(id),
       moq: input.moq ?? undefined,
+      color: input.color ?? undefined,
+      size: input.size ?? undefined,
+      style: input.style ?? undefined,
       images: input.images ?? [],
+      videos: input.videos ?? [],
       tags: input.tags ?? [],
       occasions: input.occasions ?? [],
       isFeatured: input.isFeatured ?? false,

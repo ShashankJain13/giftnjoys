@@ -40,6 +40,11 @@ export function decodeCursor(cursor: string | undefined): Record<string, unknown
   }
 }
 
+/** Short human-typeable code for a new product, e.g. "GNJ-7K3M9XQ2". Always unique (derives from the ULID). */
+export function generateSku(productId: string): string {
+  return `GNJ-${productId.slice(-8).toUpperCase()}`;
+}
+
 export function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
