@@ -15,7 +15,7 @@
     "local:down": "docker compose -f infra/local/docker-compose.yml down",
     "db:setup": "pnpm --filter @gnj/scripts run setup",
     "seed": "pnpm --filter @gnj/scripts run seed",
-    "e2e": "pnpm --filter @gnj/e2e run test",
+    "e2e": "pnpm --filter @gnj/e2e run e2e",
     "format": "prettier --write .",
     "smoke": "pnpm --filter @gnj/scripts run smoke"
   },
