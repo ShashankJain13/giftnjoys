@@ -1,0 +1,42 @@
+# Local development stack for GiftNJoys. Not for production use.
+name: giftnjoys
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    working_dir: /home/dynamodblocal
+    user: root
+    ports: ["8000:8000"]
+    volumes: ["dynamodb-data:/home/dynamodblocal/data"]
+    restart: unless-stopped
+
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    environment:
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: ap-south-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+    ports: ["8001:8001"]
+    depends_on: [dynamodb]
+    restart: unless-stopped
+
+  minio:
+    image: quay.io/minio/minio:latest  # Docker Hub minio/minio is no longer published
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${LOCAL_AWS_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${LOCAL_AWS_SECRET_ACCESS_KEY:-minioadmin}
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio-data:/data"]
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["1025:1025", "8025:8025"]
+    restart: unless-stopped
+
+volumes:
+  dynamodb-data:
+  minio-data:

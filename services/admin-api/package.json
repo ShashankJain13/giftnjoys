@@ -1,0 +1,34 @@
+{
+  "name": "@gnj/admin-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/local.ts",
+    "start": "tsx src/local.ts",
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@gnj/adapters": "workspace:*",
+    "@gnj/core": "workspace:*",
+    "@gnj/notifications": "workspace:*",
+    "@gnj/wa-import": "workspace:*",
+    "@hono/node-server": "^2.1.1",
+    "aws-jwt-verify": "^5.2.1",
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.13.8",
+    "jose": "^6.2.12",
+    "ulid": "^3.0.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.163",
+    "@types/node": "^22.20.3",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

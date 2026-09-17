@@ -1,0 +1,30 @@
+{
+  "name": "@gnj/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./pricing": "./src/pricing.ts",
+    "./orders": "./src/orders/state-machine.ts",
+    "./whatsapp": "./src/whatsapp.ts",
+    "./format": "./src/format.ts",
+    "./util": "./src/util.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1134.0",
+    "@aws-sdk/lib-dynamodb": "^3.1134.0",
+    "ulid": "^3.0.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

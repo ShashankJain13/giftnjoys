@@ -1,0 +1,27 @@
+{
+  "name": "giftnjoys",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=./apps/* --filter=./services/*",
+    "dev:apis": "turbo run dev --filter=./services/*",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "local:up": "docker compose -f infra/local/docker-compose.yml up -d --wait",
+    "local:down": "docker compose -f infra/local/docker-compose.yml down",
+    "db:setup": "pnpm --filter @gnj/scripts run setup",
+    "seed": "pnpm --filter @gnj/scripts run seed",
+    "e2e": "pnpm --filter @gnj/e2e run test",
+    "format": "prettier --write .",
+    "smoke": "pnpm --filter @gnj/scripts run smoke"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.10.13",
+    "typescript": "5.9.3"
+  }
+}
