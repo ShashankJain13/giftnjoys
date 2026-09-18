@@ -25,6 +25,8 @@ interface WaMediaRef {
   mime_type: string;
   sha256: string;
   caption?: string;
+  /** Sometimes included directly on the webhook payload — skips the extra Graph API lookup when present. */
+  url?: string;
 }
 
 interface WaMessage {
@@ -49,11 +51,14 @@ export function verifySignature(rawBody: string, signatureHeader: string | undef
   return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);
 }
 
-async function downloadMedia(mediaId: string, accessToken: string): Promise<Uint8Array> {
-  const metaRes = await fetch(`${GRAPH_API}/${mediaId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!metaRes.ok) throw new Error(`Media lookup failed: ${metaRes.status}`);
-  const meta = (await metaRes.json()) as { url: string };
-  const fileRes = await fetch(meta.url, { headers: { Authorization: `Bearer ${accessToken}` } });
+async function downloadMedia(media: WaMediaRef, accessToken: string): Promise<Uint8Array> {
+  let url = media.url;
+  if (!url) {
+    const metaRes = await fetch(`${GRAPH_API}/${media.id}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!metaRes.ok) throw new Error(`Media lookup failed: ${metaRes.status}`);
+    url = ((await metaRes.json()) as { url: string }).url;
+  }
+  const fileRes = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!fileRes.ok) throw new Error(`Media download failed: ${fileRes.status}`);
   return new Uint8Array(await fileRes.arrayBuffer());
 }
@@ -87,7 +92,7 @@ async function handleMessage(ctx: AppContext, message: WaMessage): Promise<void>
   const videos: Array<{ key: string }> = [];
   if (media) {
     if (!ctx.env.WHATSAPP_ACCESS_TOKEN) throw new Error('WHATSAPP_ACCESS_TOKEN is not configured');
-    const bytes = await downloadMedia(media.id, ctx.env.WHATSAPP_ACCESS_TOKEN);
+    const bytes = await downloadMedia(media, ctx.env.WHATSAPP_ACCESS_TOKEN);
     const ext = EXT[media.mime_type] ?? (isVideo ? 'mp4' : 'jpg');
     const key = `products/whatsapp/${message.id}.${ext}`;
     await ctx.storage.putObject('media', key, bytes, media.mime_type);
