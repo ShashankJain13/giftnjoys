@@ -5,6 +5,11 @@ locals {
   public_site_url = module.web.url
   admin_site_url  = module.admin_site.url
 
+  # Created out-of-band (Meta doesn't have a Terraform provider) — see the WhatsApp Business
+  # Platform app dashboard. Not namespaced per-environment since there's one Meta app for now.
+  whatsapp_token_param      = "/giftnjoys/whatsapp/token"
+  whatsapp_app_secret_param = "/giftnjoys/whatsapp/app-secret"
+
   common_env = {
     APP_ENV                 = var.environment
     LOG_LEVEL               = "info"
@@ -18,12 +23,15 @@ locals {
   }
 
   admin_env = merge(local.common_env, {
-    MEDIA_BUCKET               = module.media_cdn.media_bucket_name
-    IMPORTS_BUCKET             = module.media_cdn.imports_bucket_name
-    IMPORTS_QUEUE_URL          = module.imports_queue.url
-    AUTH_MODE                  = "local"
-    LOCAL_JWT_SECRET_SSM_PARAM = aws_ssm_parameter.jwt_secret.name
-    CORS_ORIGINS               = join(",", concat([local.admin_site_url], var.local_admin_origins))
+    MEDIA_BUCKET                    = module.media_cdn.media_bucket_name
+    IMPORTS_BUCKET                  = module.media_cdn.imports_bucket_name
+    IMPORTS_QUEUE_URL               = module.imports_queue.url
+    AUTH_MODE                       = "local"
+    LOCAL_JWT_SECRET_SSM_PARAM      = aws_ssm_parameter.jwt_secret.name
+    CORS_ORIGINS                    = join(",", concat([local.admin_site_url], var.local_admin_origins))
+    WHATSAPP_ACCESS_TOKEN_SSM_PARAM = local.whatsapp_token_param
+    WHATSAPP_APP_SECRET_SSM_PARAM   = local.whatsapp_app_secret_param
+    WHATSAPP_VERIFY_TOKEN_SSM_PARAM = aws_ssm_parameter.whatsapp_verify_token.name
   })
 
   public_env = merge(local.common_env, {
@@ -72,6 +80,19 @@ resource "aws_ssm_parameter" "jwt_secret" {
   name  = "/giftnjoys/${var.environment}/admin/jwt-secret"
   type  = "SecureString"
   value = random_password.jwt_secret.result
+}
+
+resource "random_password" "whatsapp_verify_token" {
+  length  = 32
+  special = false
+}
+
+# Shared secret Meta echoes back during the webhook "verify and save" handshake — not a credential
+# on its own, but kept in SSM alongside the others for consistency.
+resource "aws_ssm_parameter" "whatsapp_verify_token" {
+  name  = "/giftnjoys/${var.environment}/whatsapp/verify-token"
+  type  = "SecureString"
+  value = random_password.whatsapp_verify_token.result
 }
 
 resource "random_password" "admin_initial" {
@@ -129,9 +150,14 @@ data "aws_iam_policy_document" "admin_api" {
     resources = [module.notifications_queue.arn, module.imports_queue.arn]
   }
   statement {
-    sid       = "Secrets"
-    actions   = ["ssm:GetParameter"]
-    resources = [aws_ssm_parameter.jwt_secret.arn]
+    sid     = "Secrets"
+    actions = ["ssm:GetParameter"]
+    resources = [
+      aws_ssm_parameter.jwt_secret.arn,
+      aws_ssm_parameter.whatsapp_verify_token.arn,
+      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${local.whatsapp_token_param}",
+      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${local.whatsapp_app_secret_param}",
+    ]
   }
   statement {
     sid       = "SendEmail"

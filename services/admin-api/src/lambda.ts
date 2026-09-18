@@ -8,12 +8,17 @@ import { loadEnv } from './env';
 import { processImportJob } from './workers/import-worker';
 
 // Secrets live in SSM Parameter Store, not in Lambda environment variables. Loaded once per cold start.
-if (process.env.LOCAL_JWT_SECRET_SSM_PARAM && !process.env.LOCAL_JWT_SECRET) {
-  const res = await new SSMClient({}).send(
-    new GetParameterCommand({ Name: process.env.LOCAL_JWT_SECRET_SSM_PARAM, WithDecryption: true }),
-  );
-  process.env.LOCAL_JWT_SECRET = res.Parameter?.Value;
+async function loadSecret(ssmParamEnvVar: string, targetEnvVar: string): Promise<void> {
+  const paramName = process.env[ssmParamEnvVar];
+  if (!paramName || process.env[targetEnvVar]) return;
+  const res = await new SSMClient({}).send(new GetParameterCommand({ Name: paramName, WithDecryption: true }));
+  process.env[targetEnvVar] = res.Parameter?.Value;
 }
+
+await loadSecret('LOCAL_JWT_SECRET_SSM_PARAM', 'LOCAL_JWT_SECRET');
+await loadSecret('WHATSAPP_ACCESS_TOKEN_SSM_PARAM', 'WHATSAPP_ACCESS_TOKEN');
+await loadSecret('WHATSAPP_APP_SECRET_SSM_PARAM', 'WHATSAPP_APP_SECRET');
+await loadSecret('WHATSAPP_VERIFY_TOKEN_SSM_PARAM', 'WHATSAPP_VERIFY_TOKEN');
 
 // Created once per Lambda container and reused across invocations.
 const ctx = createContext(loadEnv());

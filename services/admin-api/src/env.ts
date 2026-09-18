@@ -34,6 +34,11 @@ const envSchema = z
     NOTIFICATIONS_QUEUE_URL: z.string().optional(),
     IMPORTS_QUEUE_URL: z.string().optional(),
 
+    // Optional: only needed to enable the WhatsApp webhook import route.
+    WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+    WHATSAPP_APP_SECRET: z.string().optional(),
+    WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+
     PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
     ADMIN_SITE_URL: z.string().url().default('http://localhost:5173'),
     CORS_ORIGINS: csv,

@@ -10,6 +10,7 @@ import { categoryRoutes } from './routes/categories';
 import { authRoutes, dashboardRoutes, importRoutes, meRoutes, settingsRoutes, uploadRoutes } from './routes/misc';
 import { orderRoutes } from './routes/orders';
 import { productRoutes } from './routes/products';
+import { whatsappWebhookRoutes } from './routes/whatsapp-webhook';
 
 export function createApp(ctx: AppContext) {
   const app = new Hono<AdminEnv>();
@@ -27,6 +28,10 @@ export function createApp(ctx: AppContext) {
   app.use('/admin/v1/*', bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: { code: 'TOO_LARGE', message: 'Request body too large' } }, 413) }));
 
   app.get('/health', (c) => c.json({ ok: true, service: 'admin-api', env: ctx.env.APP_ENV }));
+
+  // Public: Meta calls this directly (webhook verification handshake + signed message events),
+  // so it sits outside the admin JWT middleware below and authenticates via HMAC signature instead.
+  app.route('/webhooks/whatsapp', whatsappWebhookRoutes(ctx));
 
   app.route('/admin/v1/auth', authRoutes(ctx));
 
