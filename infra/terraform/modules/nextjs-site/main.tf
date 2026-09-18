@@ -1,6 +1,6 @@
 # Next.js (OpenNext build) on Lambda + CloudFront.
-#   /_next/*, /BUILD_ID      -> S3 (_assets prefix, CloudFront OAC)
-#   everything else          -> server Lambda function URL (IAM auth, CloudFront OAC)
+#   /_next/*, /BUILD_ID, *.png -> S3 (_assets prefix, CloudFront OAC)
+#   everything else            -> server Lambda function URL (IAM auth, CloudFront OAC)
 # ISR cache lives in S3 (_cache prefix); revalidation goes through a FIFO SQS queue.
 
 terraform {
@@ -284,6 +284,19 @@ resource "aws_cloudfront_distribution" "site" {
 
   ordered_cache_behavior {
     path_pattern               = "BUILD_ID"
+    target_origin_id           = "s3-assets"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # Static branding assets from apps/web/public (logo, favicon, apple touch icon) — OpenNext
+  # copies them to the root of the assets bundle, so they need their own route to S3.
+  ordered_cache_behavior {
+    path_pattern               = "*.png"
     target_origin_id           = "s3-assets"
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD"]

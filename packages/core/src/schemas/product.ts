@@ -8,18 +8,7 @@ export const productStatusSchema = z.enum(PRODUCT_STATUSES);
 export const PRODUCT_SOURCES = ['MANUAL', 'WHATSAPP'] as const;
 export type ProductSource = (typeof PRODUCT_SOURCES)[number];
 
-export const OCCASIONS = [
-  { slug: 'birthday', name: 'Birthday' },
-  { slug: 'anniversary', name: 'Anniversary' },
-  { slug: 'wedding', name: 'Wedding' },
-  { slug: 'diwali', name: 'Diwali' },
-  { slug: 'rakhi', name: 'Rakhi' },
-  { slug: 'valentines', name: "Valentine's Day" },
-  { slug: 'housewarming', name: 'Housewarming' },
-  { slug: 'corporate', name: 'Corporate Gifting' },
-  { slug: 'kids', name: 'For Kids' },
-  { slug: 'thank-you', name: 'Thank You' },
-] as const;
+export const OCCASIONS = [{ slug: 'birthday-return-gift', name: 'Birthday Return Gift' }] as const;
 export type OccasionSlug = (typeof OCCASIONS)[number]['slug'];
 export const occasionSlugSchema = z.enum(OCCASIONS.map((o) => o.slug) as [OccasionSlug, ...OccasionSlug[]]);
 
