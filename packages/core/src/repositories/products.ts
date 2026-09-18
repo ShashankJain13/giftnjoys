@@ -12,6 +12,7 @@ import { cancellationCodes, isConditionalCheckFailed, isTransactionCanceled } fr
 import { GSI } from '../db/table-definitions';
 import { badRequest, conflict, notFound } from '../errors';
 import {
+  priceFromDiscount,
   publishProblems,
   type Product,
   type ProductCreateInput,
@@ -39,6 +40,13 @@ export interface ImportedFields {
 /** Removes null/undefined so optional attributes (and sparse GSI keys) are simply absent. */
 function compact<T extends object>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined)) as T;
+}
+
+/** When a discount percentage is set, price is always derived from MRP rather than entered manually. */
+function applyDiscount(p: { price: number; mrp?: number; discountPercent?: number }): void {
+  if (p.discountPercent === undefined) return;
+  if (p.mrp === undefined) throw badRequest('Set an MRP to use a discount percentage');
+  p.price = priceFromDiscount(p.mrp, p.discountPercent);
 }
 
 export class ProductsRepository {
@@ -175,6 +183,7 @@ export class ProductsRepository {
       categoryId: input.categoryId ?? undefined,
       price: input.price,
       mrp: input.mrp ?? undefined,
+      discountPercent: input.discountPercent ?? undefined,
       stockQty: input.stockQty ?? 0,
       // Every product gets a visible, unique code even if the admin never sets one, so it's easy
       // to reference (e.g. when spotting possible duplicates from a WhatsApp import).
@@ -199,6 +208,7 @@ export class ProductsRepository {
       createdAt: now,
       updatedAt: now,
     });
+    applyDiscount(product);
     if (product.mrp !== undefined && product.mrp < product.price) {
       throw badRequest('MRP must be greater than or equal to price');
     }
@@ -246,6 +256,7 @@ export class ProductsRepository {
       if (value === null) delete (next as unknown as Record<string, unknown>)[key];
       else if (value !== undefined) (next as unknown as Record<string, unknown>)[key] = value;
     }
+    applyDiscount(next);
     if (next.mrp !== undefined && next.mrp < next.price) throw badRequest('MRP must be greater than or equal to price');
     if (next.status === 'PUBLISHED') {
       const problems = publishProblems(next);

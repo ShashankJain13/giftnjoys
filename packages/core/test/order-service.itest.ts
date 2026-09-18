@@ -75,6 +75,22 @@ describe.skipIf(!isLocal)('OrderService (DynamoDB Local)', () => {
     expect(c.slug).toBe('brass-diya');
   });
 
+  it('derives price from MRP and a discount percentage, and keeps it in sync on update', async () => {
+    const created = await repos.products.create({ name: 'Discounted Mug', price: 1, mrp: 400, discountPercent: 25 });
+    expect(created.price).toBe(300);
+
+    const repriced = await repos.products.update(created.id, { discountPercent: 50 });
+    expect(repriced.price).toBe(200);
+
+    const rebased = await repos.products.update(created.id, { mrp: 500 });
+    expect(rebased.price).toBe(250);
+
+    const manual = await repos.products.update(created.id, { discountPercent: null, price: 199 });
+    expect(manual.price).toBe(199);
+
+    await expect(repos.products.create({ name: 'No MRP', price: 100, discountPercent: 10 })).rejects.toThrow(/MRP/);
+  });
+
   it('prices orders from the database, ignoring anything the client sends', async () => {
     const mug = await publishedProduct('Itest Mug', 300, 10);
     const { order, created } = await repos.orderService.placeOrder(

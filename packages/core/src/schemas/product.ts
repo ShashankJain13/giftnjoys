@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { idSchema, imageRefSchema, moneySchema, slugSchema, type ImageRef } from './common';
+import { idSchema, imageRefSchema, moneySchema, roundMoney, slugSchema, type ImageRef } from './common';
 
 export const PRODUCT_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
@@ -20,6 +20,8 @@ export interface Product {
   categoryId?: string;
   price: number;
   mrp?: number;
+  /** When set (with `mrp`), `price` is derived from it rather than entered manually. */
+  discountPercent?: number;
   stockQty: number;
   sku?: string;
   moq?: number;
@@ -53,6 +55,7 @@ const productFields = {
   categoryId: idSchema.nullable(),
   price: moneySchema,
   mrp: moneySchema.nullable(),
+  discountPercent: z.number().min(0).max(99).nullable(),
   stockQty: z.number().int().min(0).max(1_000_000),
   sku: z.string().trim().max(64).nullable(),
   moq: z.number().int().min(1).max(100_000).nullable(),
@@ -99,6 +102,11 @@ export const stockChangeSchema = z
 export function discountPct(price: number, mrp?: number): number {
   if (!mrp || mrp <= price || mrp <= 0) return 0;
   return Math.round((1 - price / mrp) * 100);
+}
+
+/** The selling price for an MRP with a discount percentage taken off it. */
+export function priceFromDiscount(mrp: number, discountPercent: number): number {
+  return roundMoney(mrp * (1 - discountPercent / 100));
 }
 
 /** Reasons a product cannot be published (empty = ok). */

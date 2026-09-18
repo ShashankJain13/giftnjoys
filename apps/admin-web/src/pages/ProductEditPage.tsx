@@ -1,4 +1,4 @@
-import { OCCASIONS, productCreateSchema, productUpdateSchema, type OccasionSlug } from '@gnj/core/schemas';
+import { OCCASIONS, priceFromDiscount, productCreateSchema, productUpdateSchema, type OccasionSlug } from '@gnj/core/schemas';
 import { slugify } from '@gnj/core/util';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ExternalLink, MessageSquareText } from 'lucide-react';
@@ -18,6 +18,7 @@ interface FormState {
   categoryId: string;
   price: string;
   mrp: string;
+  discountPercent: string;
   stockQty: string;
   sku: string;
   moq: string;
@@ -39,6 +40,7 @@ const empty: FormState = {
   categoryId: '',
   price: '',
   mrp: '',
+  discountPercent: '',
   stockQty: '10',
   sku: '',
   moq: '',
@@ -61,6 +63,7 @@ function fromProduct(p: ProductDto): FormState {
     categoryId: p.categoryId ?? '',
     price: String(p.price),
     mrp: p.mrp !== undefined ? String(p.mrp) : '',
+    discountPercent: p.discountPercent !== undefined ? String(p.discountPercent) : '',
     stockQty: String(p.stockQty),
     sku: p.sku ?? '',
     moq: p.moq !== undefined ? String(p.moq) : '',
@@ -78,14 +81,18 @@ function fromProduct(p: ProductDto): FormState {
 
 const num = (v: string) => (v.trim() === '' ? null : Number(v));
 
+/** Discount mode is active once both MRP and a discount % are set — price is then derived, not typed in. */
+const hasDiscount = (f: Pick<FormState, 'mrp' | 'discountPercent'>) => f.mrp.trim() !== '' && f.discountPercent.trim() !== '';
+
 function toPayload(f: FormState, original?: ProductDto) {
   return {
     name: f.name,
     ...(f.slug && f.slug !== original?.slug ? { slug: f.slug } : {}),
     description: f.description,
     categoryId: f.categoryId || null,
-    price: Number(f.price || NaN),
+    price: hasDiscount(f) ? priceFromDiscount(Number(f.mrp), Number(f.discountPercent)) : Number(f.price || NaN),
     mrp: num(f.mrp),
+    discountPercent: num(f.discountPercent),
     stockQty: Number(f.stockQty || 0),
     sku: f.sku.trim() || null,
     moq: num(f.moq),
@@ -124,6 +131,11 @@ export function ProductEditPage() {
     setForm((f) => {
       const next = { ...f, [key]: value };
       if (key === 'name' && isNew && !slugTouched) next.slug = slugify(String(value));
+      // Keep `price` in sync with the computed value while discount mode is on, so clearing the
+      // discount % later leaves a sensible starting point instead of a stale manual price.
+      if ((key === 'mrp' || key === 'discountPercent') && hasDiscount(next)) {
+        next.price = String(priceFromDiscount(Number(next.mrp), Number(next.discountPercent)));
+      }
       return next;
     });
     setErrors((e) => ({ ...e, [key]: '' }));
@@ -261,11 +273,36 @@ export function ProductEditPage() {
 
           <Card title="Pricing & inventory">
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Selling price (₹)" error={errors.price}>
-                <Input type="number" min="0" step="0.01" inputMode="decimal" value={form.price} onChange={(e) => set('price', e.target.value)} invalid={!!errors.price} />
-              </Field>
               <Field label="MRP (₹)" error={errors.mrp} hint="Shown struck-through">
                 <Input type="number" min="0" step="0.01" inputMode="decimal" value={form.mrp} onChange={(e) => set('mrp', e.target.value)} invalid={!!errors.mrp} />
+              </Field>
+              <Field label="Discount %" error={errors.discountPercent} hint="Leave blank to set the price manually">
+                <Input
+                  type="number"
+                  min="0"
+                  max="99"
+                  step="1"
+                  inputMode="decimal"
+                  value={form.discountPercent}
+                  onChange={(e) => set('discountPercent', e.target.value)}
+                  invalid={!!errors.discountPercent}
+                />
+              </Field>
+              <Field
+                label="Selling price (₹)"
+                error={errors.price}
+                hint={hasDiscount(form) ? `Computed: ${form.mrp} − ${form.discountPercent}%` : undefined}
+              >
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={hasDiscount(form) ? priceFromDiscount(Number(form.mrp), Number(form.discountPercent)) : form.price}
+                  onChange={(e) => set('price', e.target.value)}
+                  disabled={hasDiscount(form)}
+                  invalid={!!errors.price}
+                />
               </Field>
               <Field label="Stock quantity" error={errors.stockQty}>
                 <Input type="number" min="0" step="1" value={form.stockQty} onChange={(e) => set('stockQty', e.target.value)} invalid={!!errors.stockQty} />

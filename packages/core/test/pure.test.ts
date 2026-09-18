@@ -9,6 +9,7 @@ import {
   mergeCartItems,
   normalizeIndianPhone,
   orderPlacedText,
+  priceFromDiscount,
   productCreateSchema,
   productUpdateSchema,
   publishProblems,
@@ -75,6 +76,12 @@ describe('pricing', () => {
     expect(discountPct(499, 999)).toBe(50);
     expect(discountPct(499, 499)).toBe(0);
     expect(discountPct(499)).toBe(0);
+  });
+
+  it('derives price from MRP and a discount percentage', () => {
+    expect(priceFromDiscount(999, 50)).toBe(499.5);
+    expect(priceFromDiscount(400, 25)).toBe(300);
+    expect(priceFromDiscount(199, 0)).toBe(199);
   });
 });
 
