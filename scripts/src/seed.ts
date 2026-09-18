@@ -67,14 +67,16 @@ interface SeedProduct {
   bestseller?: boolean;
   featured?: boolean;
   draft?: boolean;
+  colors?: string[];
+  sizes?: string[];
 }
 
 const PRODUCTS: SeedProduct[] = [
   { name: 'Personalised Name Wooden Keychain', category: 'kids', price: 199, mrp: 349, stock: 50, occasions: ['birthday', 'thank-you'], tags: ['keychain', 'wooden', 'return gift'], bestseller: true, description: 'Laser-engraved pine wood keychain with the name of your choice. Lightweight, sturdy and gift-ready — a popular birthday return gift.' },
-  { name: 'Cuddly Teddy Bear 25 cm', category: 'kids', price: 249, mrp: 399, stock: 60, occasions: ['birthday', 'kids'], tags: ['teddy', 'soft toy', 'return gift'], bestseller: true, description: 'Soft plush mini teddy with a satin bow — a favourite party return gift. Safe for all ages.' },
+  { name: 'Cuddly Teddy Bear 25 cm', category: 'kids', price: 249, mrp: 399, stock: 60, occasions: ['birthday', 'kids'], tags: ['teddy', 'soft toy', 'return gift'], bestseller: true, description: 'Soft plush mini teddy with a satin bow — a favourite party return gift. Safe for all ages.', colors: ['Brown', 'White', 'Pink'] },
   { name: 'Wooden Alphabet Puzzle', category: 'kids', price: 349, mrp: 499, stock: 30, occasions: ['kids', 'birthday'], tags: ['puzzle', 'learning', 'return gift'], description: 'Chunky A–Z wooden puzzle with non-toxic paint, for ages 2+. A fun and useful return gift.' },
   { name: 'Return Gift Combo – Notebook & Pencil Set', category: 'kids', price: 99, mrp: 179, stock: 100, occasions: ['birthday', 'kids'], tags: ['stationery', 'return gift', 'combo'], bestseller: true, description: 'A mini notebook, pencil and eraser set packed as a ready-to-hand-out birthday return gift.' },
-  { name: 'Cartoon Print Kids Water Bottle', category: 'kids', price: 179, mrp: 299, stock: 45, occasions: ['kids', 'birthday'], tags: ['bottle', 'kids', 'return gift'], description: 'Leak-proof 500ml bottle with fun cartoon prints — light, useful and loved by kids.' },
+  { name: 'Cartoon Print Kids Water Bottle', category: 'kids', price: 179, mrp: 299, stock: 45, occasions: ['kids', 'birthday'], tags: ['bottle', 'kids', 'return gift'], description: 'Leak-proof bottle with fun cartoon prints — light, useful and loved by kids.', sizes: ['350ml', '500ml', '750ml'] },
   { name: 'Kanjak Gift Set for Little Girls', category: 'kids', price: 149, mrp: 249, stock: 40, occasions: ['kids'], tags: ['kanjak', 'return gift'], description: 'A cute mix of bangles, a hair clip and a small toy — ready to hand out during Kanjak/Navratri.' },
   { name: 'Custom Photo Collage Frame (12 Photos)', category: 'general', price: 649, mrp: 999, stock: 25, occasions: ['anniversary', 'birthday'], tags: ['photo frame'], featured: true, description: 'A 12-photo collage printed on premium paper in a matte black frame. Share your photos on WhatsApp after ordering.' },
   { name: 'Engraved Couple Name Night Lamp', category: 'general', price: 899, mrp: 1499, stock: 12, occasions: ['anniversary', 'valentines', 'wedding'], tags: ['lamp', 'couple'], bestseller: true, description: 'Warm-white LED acrylic lamp engraved with two names and a date. USB powered.' },
@@ -86,7 +88,7 @@ const PRODUCTS: SeedProduct[] = [
   { name: 'Dry Fruit Festive Gift Box', category: 'general', price: 1499, mrp: 1999, stock: 18, occasions: ['diwali', 'rakhi', 'corporate'], tags: ['dry fruits'], featured: true, description: 'Almonds, cashews, raisins and pistachios in a four-compartment keepsake box.' },
   { name: 'Self-Care Spa Hamper', category: 'general', price: 1899, mrp: 2499, stock: 8, occasions: ['birthday', 'thank-you'], tags: ['spa', 'self care'], description: 'Bath salts, body butter, a scented candle and a soft towel in a woven basket.' },
   { name: 'Silver-Plated Charm Bracelet', category: 'general', price: 599, mrp: 999, stock: 14, occasions: ['birthday', 'rakhi', 'anniversary'], tags: ['bracelet'], description: 'Adjustable chain bracelet with heart, star and moon charms. Comes in a velvet pouch.' },
-  { name: 'Vegan Leather Wallet with Name Engraving', category: 'general', price: 749, mrp: 1199, stock: 16, occasions: ['corporate', 'birthday'], tags: ['wallet', 'engraved'], featured: true, description: 'Slim bi-fold wallet with RFID lining and an engraved name on the front.' },
+  { name: 'Vegan Leather Wallet with Name Engraving', category: 'general', price: 749, mrp: 1199, stock: 16, occasions: ['corporate', 'birthday'], tags: ['wallet', 'engraved'], featured: true, description: 'Slim bi-fold wallet with RFID lining and an engraved name on the front.', colors: ['Black', 'Brown', 'Tan'] },
   { name: 'Brass Diya Set of 4', category: 'general', price: 399, mrp: 599, stock: 45, occasions: ['diwali'], tags: ['diya', 'brass'], bestseller: true, description: 'Hand-polished brass diyas with a traditional lotus pattern.' },
   { name: 'Designer Rakhi Set with Roli Chawal', category: 'general', price: 249, mrp: 399, stock: 70, occasions: ['rakhi'], tags: ['rakhi'], description: 'Two handcrafted rakhis with roli, chawal and a greeting card.' },
   { name: 'Premium Undated Planner', category: 'general', price: 449, mrp: 699, stock: 26, occasions: ['corporate', 'thank-you'], tags: ['planner', 'diary'], description: 'A5 hardbound planner with weekly spreads, habit trackers and 100 gsm paper.' },
@@ -184,6 +186,8 @@ async function seedCatalog(): Promise<Record<string, string>> {
       tags: p.tags,
       isBestseller: p.bestseller ?? false,
       isFeatured: p.featured ?? false,
+      colors: p.colors ?? [],
+      sizes: p.sizes ?? [],
     });
     const images = [0, 1].map((v) => ({ key: `products/${created.id}/seed-${v + 1}.svg` }));
     await Promise.all(

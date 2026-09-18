@@ -12,8 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(SITE_URL),
     title: { default: `${name} — ${settings?.tagline ?? 'Gifts for every occasion'}`, template: `%s | ${name}` },
     description: 'Hand-picked gifts, hampers and personalised keepsakes for birthdays, anniversaries, festivals and corporate gifting. Order online and confirm on WhatsApp.',
-    openGraph: { siteName: name, type: 'website', locale: 'en_IN' },
-    icons: { icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>" },
+    openGraph: { siteName: name, type: 'website', locale: 'en_IN', images: ['/logo-icon.png'] },
+    icons: { icon: '/favicon-32.png', apple: '/apple-touch-icon.png' },
   };
 }
 

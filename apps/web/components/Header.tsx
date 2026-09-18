@@ -11,10 +11,8 @@ export function Header({ settings, categories }: { settings: PublicSettings; cat
       )}
       <div className="container-page flex h-16 items-center gap-3 lg:gap-6">
         <MobileMenu categories={categories} occasions={settings.occasions} />
-        <Link href="/" className="flex shrink-0 items-center gap-1.5" aria-label={`${settings.storeName} home`}>
-          <span className="text-2xl" aria-hidden>
-            🎁
-          </span>
+        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label={`${settings.storeName} home`}>
+          <img src="/logo-icon.png" alt="" aria-hidden className="size-9 object-contain sm:size-10" />
           <span className="font-display text-xl font-bold tracking-tight text-brand-700 sm:text-2xl">{settings.storeName}</span>
         </Link>
         <div className="hidden flex-1 md:block">

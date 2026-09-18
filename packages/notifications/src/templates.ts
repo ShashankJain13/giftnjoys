@@ -62,7 +62,7 @@ function itemsTable(order: Order, ctx: TemplateContext): string {
           ? `<img src="${escapeHtml(ctx.mediaUrl(i.imageKey))}" width="48" height="48" style="border-radius:6px;object-fit:cover" alt="">`
           : ''
       }</td>
-<td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(i.name)}<br><span style="color:#6b7280;font-size:13px">${i.qty} × ${formatINR(i.unitPrice)}</span></td>
+<td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(i.name)}${i.variant ? `<br><span style="color:#6b7280;font-size:12px">${escapeHtml(i.variant)}</span>` : ''}<br><span style="color:#6b7280;font-size:13px">${i.qty} × ${formatINR(i.unitPrice)}</span></td>
 <td align="right" style="padding:8px 0;border-bottom:1px solid #f1f1f1;white-space:nowrap">${formatINR(i.lineTotal)}</td></tr>`,
     )
     .join('');
@@ -85,7 +85,7 @@ function addressBlock(order: Order): string {
 
 function itemsText(order: Order): string {
   return [
-    ...order.items.map((i) => `- ${i.name} x ${i.qty} = ${formatINR(i.lineTotal)}`),
+    ...order.items.map((i) => `- ${i.name}${i.variant ? ` (${i.variant})` : ''} x ${i.qty} = ${formatINR(i.lineTotal)}`),
     `Subtotal: ${formatINR(order.subtotal)}`,
     `Shipping: ${order.shippingFee ? formatINR(order.shippingFee) : 'Free'}`,
     ...(order.giftWrap ? [`Gift wrap: ${formatINR(order.giftWrapFee)}`] : []),

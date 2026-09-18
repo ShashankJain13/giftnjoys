@@ -50,14 +50,63 @@ export function ProductGallery({ images, videos = [], name }: { images: string[]
   );
 }
 
+function OptionPicker({ label, options, value, onChange }: { label: string; options: string[]; value?: string; onChange: (v: string) => void }) {
+  if (options.length === 0) return null;
+  return (
+    <div>
+      <span className="mb-1.5 block text-sm font-medium text-neutral-700">{label}</span>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={`rounded-full px-3.5 py-1.5 text-sm ring-1 ${
+              value === opt ? 'bg-ink text-white ring-ink' : 'bg-white text-neutral-700 ring-black/15 hover:ring-black/30'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PurchasePanel({ product, whatsappNumber, productUrl }: { product: Product; whatsappNumber: string; productUrl: string }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const [qty, setQty] = useState(product.moq ?? 1);
+  const [color, setColor] = useState<string | undefined>(product.colors.length === 1 ? product.colors[0] : undefined);
+  const [size, setSize] = useState<string | undefined>(product.sizes.length === 1 ? product.sizes[0] : undefined);
+  const [showOptionHint, setShowOptionHint] = useState(false);
   const max = Math.min(99, product.stockLeft ?? 99);
+
+  const needsColor = product.colors.length > 0 && !color;
+  const needsSize = product.sizes.length > 0 && !size;
+  const variant = [color, size].filter(Boolean).join(' / ') || undefined;
+
+  function optionsChosen(): boolean {
+    if (needsColor || needsSize) {
+      setShowOptionHint(true);
+      return false;
+    }
+    return true;
+  }
+
+  function withOptions(action: () => void) {
+    if (optionsChosen()) action();
+  }
 
   return (
     <div className="space-y-4">
+      {(product.colors.length > 0 || product.sizes.length > 0) && (
+        <div className="space-y-3">
+          <OptionPicker label="Colour" options={product.colors} value={color} onChange={(v) => { setColor(v); setShowOptionHint(false); }} />
+          <OptionPicker label="Size" options={product.sizes} value={size} onChange={(v) => { setSize(v); setShowOptionHint(false); }} />
+          {showOptionHint && <p className="text-sm text-red-600">Please select {needsColor ? 'a colour' : 'a size'} before continuing.</p>}
+        </div>
+      )}
       {product.inStock && (
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-neutral-700">Quantity</span>
@@ -75,13 +124,15 @@ export function PurchasePanel({ product, whatsappNumber, productUrl }: { product
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
-        <AddToCartButton product={product} qty={qty} />
+        <AddToCartButton product={product} qty={qty} variant={variant} onBeforeAdd={optionsChosen} />
         {product.inStock && (
           <button
             type="button"
             onClick={() => {
-              add({ productId: product.id, slug: product.slug, name: product.name, image: product.images[0], price: product.price, mrp: product.mrp }, qty);
-              router.push('/cart');
+              withOptions(() => {
+                add({ productId: product.id, slug: product.slug, name: product.name, image: product.images[0], price: product.price, mrp: product.mrp, variant }, qty);
+                router.push('/cart');
+              });
             }}
             className="w-full rounded-full bg-ink px-6 py-3.5 text-base font-semibold text-white hover:bg-black"
           >

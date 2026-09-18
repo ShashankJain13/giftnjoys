@@ -18,8 +18,8 @@ export interface Product {
   lowStock: boolean;
   stockLeft?: number;
   moq?: number;
-  color?: string;
-  size?: string;
+  colors: string[];
+  sizes: string[];
   style?: string;
   images: string[];
   videos: string[];
@@ -89,6 +89,7 @@ export interface QuoteLine {
   lineTotal: number;
   problem?: 'UNAVAILABLE' | 'INSUFFICIENT_STOCK';
   available?: number;
+  variant?: string;
 }
 
 export interface Quote {
@@ -108,7 +109,7 @@ export interface PlacedOrder {
   statusLabel: string;
   createdAt: string;
   customer: { name: string; email: string; phone: string };
-  items: Array<{ productId: string; name: string; slug: string; image?: string; unitPrice: number; qty: number; lineTotal: number }>;
+  items: Array<{ productId: string; name: string; slug: string; image?: string; unitPrice: number; qty: number; lineTotal: number; variant?: string }>;
   subtotal: number;
   shippingFee: number;
   giftWrapFee: number;
@@ -122,7 +123,7 @@ export interface TrackedOrder {
   statusLabel: string;
   createdAt: string;
   updatedAt: string;
-  items: Array<{ name: string; slug: string; image?: string; unitPrice: number; qty: number; lineTotal: number }>;
+  items: Array<{ name: string; slug: string; image?: string; unitPrice: number; qty: number; lineTotal: number; variant?: string }>;
   subtotal: number;
   shippingFee: number;
   giftWrapFee: number;

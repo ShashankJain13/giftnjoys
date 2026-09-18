@@ -45,7 +45,7 @@ export function Layout() {
         )}
       >
         <div className="flex h-14 items-center gap-2 border-b border-slate-100 px-4">
-          <span className="text-xl">🎁</span>
+          <img src="/logo-icon.png" alt="" aria-hidden className="size-7 object-contain" />
           <span className="font-semibold">SmileBox</span>
           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">Admin</span>
         </div>
@@ -88,7 +88,8 @@ export function Layout() {
           <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="rounded p-1.5 hover:bg-slate-100">
             <Menu className="size-5" />
           </button>
-          <span className="font-semibold">🎁 SmileBox Admin</span>
+          <img src="/logo-icon.png" alt="" aria-hidden className="size-6 object-contain" />
+          <span className="font-semibold">SmileBox Admin</span>
         </header>
         <main className="mx-auto max-w-7xl p-4 lg:p-8">
           <Outlet />

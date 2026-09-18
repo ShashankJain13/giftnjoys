@@ -180,8 +180,8 @@ export class ProductsRepository {
       // to reference (e.g. when spotting possible duplicates from a WhatsApp import).
       sku: input.sku ?? generateSku(id),
       moq: input.moq ?? undefined,
-      color: input.color ?? undefined,
-      size: input.size ?? undefined,
+      colors: input.colors ?? [],
+      sizes: input.sizes ?? [],
       style: input.style ?? undefined,
       images: input.images ?? [],
       videos: input.videos ?? [],

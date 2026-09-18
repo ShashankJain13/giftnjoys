@@ -158,4 +158,29 @@ describe.skipIf(!isLocal)('OrderService (DynamoDB Local)', () => {
     expect(await repos.orders.countByStatus('DELIVERED')).toBe(1);
     expect((await repos.orders.listByPhone('9876543210')).length).toBeGreaterThan(3);
   });
+
+  it('keeps different colour/size picks of the same product as separate lines', async () => {
+    const tee = await publishedProduct('Itest T-Shirt', 400, 10);
+    const quote = await repos.orderService.quote({
+      items: [
+        { productId: tee.id, qty: 1, variant: 'Red / M' },
+        { productId: tee.id, qty: 2, variant: 'Blue / L' },
+      ],
+      giftWrap: false,
+    });
+    expect(quote.lines).toHaveLength(2);
+    expect(quote.lines.map((l) => l.variant)).toEqual(['Red / M', 'Blue / L']);
+    expect(quote.subtotal).toBe(1200);
+
+    const { order } = await repos.orderService.placeOrder(
+      checkout([
+        { productId: tee.id, qty: 1, variant: 'Red / M' },
+        { productId: tee.id, qty: 2, variant: 'Blue / L' },
+      ]),
+    );
+    expect(order.items.map((i) => ({ variant: i.variant, qty: i.qty }))).toEqual([
+      { variant: 'Red / M', qty: 1 },
+      { variant: 'Blue / L', qty: 2 },
+    ]);
+  });
 });

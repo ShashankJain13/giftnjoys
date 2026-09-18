@@ -26,8 +26,8 @@ export interface ExtractedFields {
   price?: number;
   mrp?: number;
   moq?: number;
-  color?: string;
-  size?: string;
+  colors: string[];
+  sizes: string[];
   tags: string[];
   warnings: string[];
 }
@@ -51,8 +51,8 @@ export interface ImportCandidate {
   price?: number;
   mrp?: number;
   moq?: number;
-  color?: string;
-  size?: string;
+  colors: string[];
+  sizes: string[];
   tags: string[];
   categoryId?: string;
   images: CandidateImage[];

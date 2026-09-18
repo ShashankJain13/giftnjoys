@@ -5,7 +5,20 @@ import { useState } from 'react';
 import { useCart } from '@/lib/cart';
 import type { Product } from '@/lib/types';
 
-export function AddToCartButton({ product, qty = 1, compact = false }: { product: Product; qty?: number; compact?: boolean }) {
+export function AddToCartButton({
+  product,
+  qty = 1,
+  compact = false,
+  variant,
+  onBeforeAdd,
+}: {
+  product: Product;
+  qty?: number;
+  compact?: boolean;
+  variant?: string;
+  /** Return false to block adding (e.g. a required colour/size hasn't been picked yet). */
+  onBeforeAdd?: () => boolean;
+}) {
   const add = useCart((s) => s.add);
   const [added, setAdded] = useState(false);
 
@@ -21,8 +34,9 @@ export function AddToCartButton({ product, qty = 1, compact = false }: { product
     <button
       type="button"
       onClick={() => {
+        if (onBeforeAdd && !onBeforeAdd()) return;
         add(
-          { productId: product.id, slug: product.slug, name: product.name, image: product.images[0], price: product.price, mrp: product.mrp },
+          { productId: product.id, slug: product.slug, name: product.name, image: product.images[0], price: product.price, mrp: product.mrp, variant },
           qty,
         );
         setAdded(true);

@@ -141,6 +141,7 @@ export function OrderDetailPage() {
                     <Link to={`/products/${i.productId}`} className="line-clamp-1 font-medium hover:text-brand-700">
                       {i.name}
                     </Link>
+                    {i.variant && <div className="text-xs text-slate-500">{i.variant}</div>}
                     <div className="text-xs text-slate-500">
                       {i.qty} × {formatINR(i.unitPrice)}
                     </div>

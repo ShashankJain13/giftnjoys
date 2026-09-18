@@ -30,6 +30,7 @@ export interface QuoteLine {
   lineTotal: number;
   stockQty: number;
   problem?: LineProblem;
+  variant?: string;
 }
 
 export interface Quote extends Totals {
@@ -68,6 +69,7 @@ export class OrderService {
           lineTotal: 0,
           stockQty: 0,
           problem: 'UNAVAILABLE' as const,
+          ...(item.variant ? { variant: item.variant } : {}),
         };
       }
       return {
@@ -78,6 +80,7 @@ export class OrderService {
         imageKey: p.images[0]?.key,
         unitPrice: p.price,
         mrp: p.mrp,
+        ...(item.variant ? { variant: item.variant } : {}),
         lineTotal: Math.round(p.price * item.qty * 100) / 100,
         stockQty: p.stockQty,
         ...(p.stockQty < item.qty ? { problem: 'INSUFFICIENT_STOCK' as const } : {}),
@@ -127,6 +130,7 @@ export class OrderService {
       ...(l.mrp !== undefined ? { mrp: l.mrp } : {}),
       qty: l.qty,
       lineTotal: l.lineTotal,
+      ...(l.variant ? { variant: l.variant } : {}),
     }));
 
     const order: Order = {

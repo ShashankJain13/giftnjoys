@@ -97,26 +97,13 @@ export default async function ProductPage({ params }: Props) {
             )}
           </p>
           {product.moq && product.moq > 1 && <p className="mt-1 text-sm text-neutral-600">Minimum order: {product.moq} pieces</p>}
-          {(product.color || product.size || product.style) && (
+          {/* Colour/size are chosen just below via PurchasePanel's option pickers when the product offers more than one. */}
+          {product.style && (
             <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-neutral-700">
-              {product.color && (
-                <div className="flex gap-1.5">
-                  <dt className="font-medium text-neutral-500">Colour:</dt>
-                  <dd>{product.color}</dd>
-                </div>
-              )}
-              {product.size && (
-                <div className="flex gap-1.5">
-                  <dt className="font-medium text-neutral-500">Size:</dt>
-                  <dd>{product.size}</dd>
-                </div>
-              )}
-              {product.style && (
-                <div className="flex gap-1.5">
-                  <dt className="font-medium text-neutral-500">Style:</dt>
-                  <dd>{product.style}</dd>
-                </div>
-              )}
+              <div className="flex gap-1.5">
+                <dt className="font-medium text-neutral-500">Style:</dt>
+                <dd>{product.style}</dd>
+              </div>
             </dl>
           )}
 

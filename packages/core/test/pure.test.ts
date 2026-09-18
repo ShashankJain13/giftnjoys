@@ -58,6 +58,19 @@ describe('pricing', () => {
     ]);
   });
 
+  it('keeps different variants of the same product as separate lines', () => {
+    expect(
+      mergeCartItems([
+        { productId: 'a', qty: 1, variant: 'Red' },
+        { productId: 'a', qty: 2, variant: 'Blue' },
+        { productId: 'a', qty: 3, variant: 'Red' },
+      ]),
+    ).toEqual([
+      { productId: 'a', qty: 4, variant: 'Red' },
+      { productId: 'a', qty: 2, variant: 'Blue' },
+    ]);
+  });
+
   it('computes discount percent', () => {
     expect(discountPct(499, 999)).toBe(50);
     expect(discountPct(499, 499)).toBe(0);

@@ -21,8 +21,8 @@ interface FormState {
   stockQty: string;
   sku: string;
   moq: string;
-  color: string;
-  size: string;
+  colors: string;
+  sizes: string;
   style: string;
   tags: string;
   occasions: OccasionSlug[];
@@ -42,8 +42,8 @@ const empty: FormState = {
   stockQty: '10',
   sku: '',
   moq: '',
-  color: '',
-  size: '',
+  colors: '',
+  sizes: '',
   style: '',
   tags: '',
   occasions: [],
@@ -64,8 +64,8 @@ function fromProduct(p: ProductDto): FormState {
     stockQty: String(p.stockQty),
     sku: p.sku ?? '',
     moq: p.moq !== undefined ? String(p.moq) : '',
-    color: p.color ?? '',
-    size: p.size ?? '',
+    colors: p.colors.join(', '),
+    sizes: p.sizes.join(', '),
     style: p.style ?? '',
     tags: p.tags.join(', '),
     occasions: p.occasions,
@@ -89,8 +89,8 @@ function toPayload(f: FormState, original?: ProductDto) {
     stockQty: Number(f.stockQty || 0),
     sku: f.sku.trim() || null,
     moq: num(f.moq),
-    color: f.color.trim() || null,
-    size: f.size.trim() || null,
+    colors: f.colors.split(',').map((t) => t.trim()).filter(Boolean),
+    sizes: f.sizes.split(',').map((t) => t.trim()).filter(Boolean),
     style: f.style.trim() || null,
     tags: f.tags.split(',').map((t) => t.trim()).filter(Boolean),
     occasions: f.occasions,
@@ -281,11 +281,11 @@ export function ProductEditPage() {
 
           <Card title="Variants">
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Colour" error={errors.color} hint="e.g. Red, Blue, Multicolor">
-                <Input value={form.color} onChange={(e) => set('color', e.target.value)} />
+              <Field label="Colours" error={errors.colors} hint="Comma separated if more than one, e.g. Red, Blue, Multicolor">
+                <Input value={form.colors} onChange={(e) => set('colors', e.target.value)} />
               </Field>
-              <Field label="Size" error={errors.size} hint="e.g. Small, Medium, Large">
-                <Input value={form.size} onChange={(e) => set('size', e.target.value)} />
+              <Field label="Sizes" error={errors.sizes} hint="Comma separated if more than one, e.g. Small, Medium, Large">
+                <Input value={form.sizes} onChange={(e) => set('sizes', e.target.value)} />
               </Field>
               <Field label="Style" error={errors.style} hint="e.g. Cartoon Print">
                 <Input value={form.style} onChange={(e) => set('style', e.target.value)} />

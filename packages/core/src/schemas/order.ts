@@ -78,6 +78,8 @@ export type Customer = z.infer<typeof customerSchema>;
 export const cartItemInputSchema = z.object({
   productId: idSchema,
   qty: z.number().int().min(1).max(99),
+  /** Customer-picked colour/size, e.g. "Red / Large" — informational, doesn't affect price or stock. */
+  variant: z.string().trim().max(120).optional(),
 });
 export type CartItemInput = z.infer<typeof cartItemInputSchema>;
 
@@ -107,6 +109,7 @@ export interface OrderItem {
   mrp?: number;
   qty: number;
   lineTotal: number;
+  variant?: string;
 }
 
 export interface OrderStatusChange {

@@ -14,13 +14,22 @@ export interface Totals {
   amountToFreeShipping: number;
 }
 
-/** Merges duplicate products in a cart (sum of qty, capped at 99). Keeps first-seen order. */
+/**
+ * Merges duplicate cart lines (sum of qty, capped at 99). Lines for the same product but a
+ * different colour/size variant are kept separate. Keeps first-seen order.
+ */
 export function mergeCartItems(items: CartItemInput[]): CartItemInput[] {
-  const merged = new Map<string, number>();
+  const merged = new Map<string, { productId: string; qty: number; variant?: string }>();
   for (const item of items) {
-    merged.set(item.productId, Math.min(99, (merged.get(item.productId) ?? 0) + item.qty));
+    const key = `${item.productId}::${item.variant ?? ''}`;
+    const existing = merged.get(key);
+    merged.set(key, {
+      productId: item.productId,
+      qty: Math.min(99, (existing?.qty ?? 0) + item.qty),
+      ...(item.variant ? { variant: item.variant } : {}),
+    });
   }
-  return [...merged].map(([productId, qty]) => ({ productId, qty }));
+  return [...merged.values()];
 }
 
 export function computeTotals(

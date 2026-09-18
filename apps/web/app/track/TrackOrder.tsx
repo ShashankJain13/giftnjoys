@@ -128,6 +128,7 @@ export function TrackOrder() {
                   <span className="size-10 shrink-0 overflow-hidden rounded-lg bg-brand-50">{i.image && <img src={i.image} alt="" className="size-full object-cover" />}</span>
                   <span className="flex-1">
                     {i.name} × {i.qty}
+                    {i.variant && <span className="block text-xs text-neutral-500">{i.variant}</span>}
                   </span>
                   <span>{formatINR(i.lineTotal)}</span>
                 </li>

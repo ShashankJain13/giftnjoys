@@ -34,8 +34,8 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-amber-50 p-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg ring-1 ring-slate-200">
         <div className="mb-6 text-center">
-          <div className="text-4xl">🎁</div>
-          <h1 className="mt-2 text-xl font-semibold">SmileBox Admin</h1>
+          <img src="/logo-full.png" alt="SmileBox — A Gift Gallery" className="mx-auto h-28 w-auto object-contain" />
+          <h1 className="mt-2 text-xl font-semibold">Admin</h1>
           <p className="text-sm text-slate-500">Sign in to manage orders and inventory</p>
         </div>
         <div className="space-y-4">

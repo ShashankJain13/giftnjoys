@@ -15,7 +15,7 @@ export default function CartPage() {
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
 
-  const key = JSON.stringify(lines.map((l) => [l.productId, l.qty])) + giftWrap;
+  const key = JSON.stringify(lines.map((l) => [l.productId, l.qty, l.variant])) + giftWrap;
   useEffect(() => {
     if (!hydrated) return;
     if (lines.length === 0) {
@@ -24,7 +24,10 @@ export default function CartPage() {
     }
     setLoading(true);
     const t = setTimeout(() => {
-      clientApi<Quote>('/cart/quote', { method: 'POST', body: { items: lines.map((l) => ({ productId: l.productId, qty: l.qty })), giftWrap } })
+      clientApi<Quote>('/cart/quote', {
+        method: 'POST',
+        body: { items: lines.map((l) => ({ productId: l.productId, qty: l.qty, ...(l.variant ? { variant: l.variant } : {}) })), giftWrap },
+      })
         .then((q) => {
           setQuote(q);
           setError(undefined);
@@ -51,7 +54,7 @@ export default function CartPage() {
     );
   }
 
-  const quoteLine = (id: string) => quote?.lines.find((l) => l.productId === id);
+  const quoteLine = (id: string, variant?: string) => quote?.lines.find((l) => l.productId === id && (l.variant ?? '') === (variant ?? ''));
   const freeProgress = quote && quote.freeShippingThreshold > 0 ? Math.min(100, (quote.subtotal / quote.freeShippingThreshold) * 100) : 0;
 
   return (
@@ -60,10 +63,10 @@ export default function CartPage() {
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-3">
           {lines.map((line) => {
-            const q = quoteLine(line.productId);
+            const q = quoteLine(line.productId, line.variant);
             const price = q && !q.problem ? q.unitPrice : line.price;
             return (
-              <div key={line.productId} className="flex gap-4 rounded-2xl bg-white p-4 ring-1 ring-black/5" data-testid="cart-line">
+              <div key={`${line.productId}::${line.variant ?? ''}`} className="flex gap-4 rounded-2xl bg-white p-4 ring-1 ring-black/5" data-testid="cart-line">
                 <Link href={`/p/${line.slug}`} className="size-24 shrink-0 overflow-hidden rounded-xl bg-brand-50">
                   {line.image ? <img src={line.image} alt="" className="size-full object-cover" /> : <span className="flex size-full items-center justify-center text-3xl">🎁</span>}
                 </Link>
@@ -72,10 +75,11 @@ export default function CartPage() {
                     <Link href={`/p/${line.slug}`} className="line-clamp-2 font-medium hover:text-brand-700">
                       {line.name}
                     </Link>
-                    <button type="button" onClick={() => remove(line.productId)} aria-label={`Remove ${line.name}`} className="rounded-full p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600">
+                    <button type="button" onClick={() => remove(line.productId, line.variant)} aria-label={`Remove ${line.name}`} className="rounded-full p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600">
                       <Trash2 className="size-4" />
                     </button>
                   </div>
+                  {line.variant && <span className="text-xs text-neutral-500">{line.variant}</span>}
                   <span className="mt-1 text-sm text-neutral-600">{formatINR(price)} each</span>
                   {q && q.unitPrice > 0 && q.unitPrice !== line.price && <span className="text-xs text-amber-700">Price updated to {formatINR(q.unitPrice)}</span>}
                   {q?.problem === 'UNAVAILABLE' && <span className="mt-1 text-sm font-medium text-red-600">No longer available — please remove it</span>}
@@ -83,7 +87,7 @@ export default function CartPage() {
                     <span className="mt-1 text-sm font-medium text-red-600">
                       Only {q.available ?? 0} in stock{' '}
                       {(q.available ?? 0) > 0 && (
-                        <button type="button" className="underline" onClick={() => setQty(line.productId, q.available!)}>
+                        <button type="button" className="underline" onClick={() => setQty(line.productId, q.available!, line.variant)}>
                           Set to {q.available}
                         </button>
                       )}
@@ -91,11 +95,11 @@ export default function CartPage() {
                   )}
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div className="flex items-center rounded-full ring-1 ring-black/10">
-                      <button type="button" aria-label="Decrease quantity" onClick={() => setQty(line.productId, line.qty - 1)} className="p-2">
+                      <button type="button" aria-label="Decrease quantity" onClick={() => setQty(line.productId, line.qty - 1, line.variant)} className="p-2">
                         <Minus className="size-3.5" />
                       </button>
                       <span className="w-8 text-center text-sm font-semibold">{line.qty}</span>
-                      <button type="button" aria-label="Increase quantity" onClick={() => setQty(line.productId, line.qty + 1)} className="p-2">
+                      <button type="button" aria-label="Increase quantity" onClick={() => setQty(line.productId, line.qty + 1, line.variant)} className="p-2">
                         <Plus className="size-3.5" />
                       </button>
                     </div>

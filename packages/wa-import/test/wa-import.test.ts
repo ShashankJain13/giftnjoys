@@ -40,6 +40,18 @@ describe('extractFields', () => {
     expect(f.tags).toEqual(['candles', 'diwali']);
   });
 
+  it('splits multi-value colour/size labels into separate options', () => {
+    const f = extractFields('Cotton Kurti\nPrice: 599\nColours: Red, Blue & Multicolor\nSize - S/M/L');
+    expect(f.colors).toEqual(['Red', 'Blue', 'Multicolor']);
+    expect(f.sizes).toEqual(['S', 'M', 'L']);
+  });
+
+  it('defaults colours/sizes to an empty list when no label is present', () => {
+    const f = extractFields('Plain Ceramic Mug\nPrice: 199');
+    expect(f.colors).toEqual([]);
+    expect(f.sizes).toEqual([]);
+  });
+
   it('uses MRP as price when only MRP is present and warns', () => {
     const f = extractFields('Soft Teddy Bear\nMRP 899');
     expect(f.price).toBe(899);

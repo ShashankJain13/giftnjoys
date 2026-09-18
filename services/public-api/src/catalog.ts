@@ -32,8 +32,8 @@ export interface PublicProduct {
   /** Only exposed when low, so shoppers see "Only 3 left". */
   stockLeft?: number;
   moq?: number;
-  color?: string;
-  size?: string;
+  colors: string[];
+  sizes: string[];
   style?: string;
   images: string[];
   videos: string[];
@@ -180,8 +180,8 @@ export class CatalogCache {
       lowStock,
       ...(lowStock ? { stockLeft: p.stockQty } : {}),
       ...(p.moq ? { moq: p.moq } : {}),
-      ...(p.color ? { color: p.color } : {}),
-      ...(p.size ? { size: p.size } : {}),
+      colors: p.colors,
+      sizes: p.sizes,
       ...(p.style ? { style: p.style } : {}),
       images: p.images.map((i) => this.mediaUrl(i.key)),
       videos: p.videos.map((v) => this.mediaUrl(v.key)),

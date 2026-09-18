@@ -110,10 +110,14 @@ export function extractFields(text: string): ExtractedFields {
   const moq = moqMatch ? Number(moqMatch[1]) : undefined;
 
   const trimLabelValue = (v: string) => v.replace(/[.!\s]+$/, '').trim();
+  // Sellers list several options on one label line, e.g. "Colours: Red, Blue & Multicolor" or
+  // "Size - S/M/L" — split on the common separators so each option becomes its own value.
+  const splitOptions = (v: string): string[] =>
+    [...new Set(v.split(/\s*(?:,|\/|&|\band\b)\s*/i).map((s) => s.trim()).filter(Boolean))];
   const colorMatch = COLOR_RE.exec(text);
-  const color = colorMatch ? trimLabelValue(colorMatch[1]!) : undefined;
+  const colors = colorMatch ? splitOptions(trimLabelValue(colorMatch[1]!)) : [];
   const sizeMatch = SIZE_RE.exec(text);
-  const size = sizeMatch ? trimLabelValue(sizeMatch[1]!) : undefined;
+  const sizes = sizeMatch ? splitOptions(trimLabelValue(sizeMatch[1]!)) : [];
 
   const tags = [...new Set([...text.matchAll(HASHTAG_RE)].map((m) => m[1]!.toLowerCase()))];
 
@@ -146,8 +150,8 @@ export function extractFields(text: string): ExtractedFields {
     ...(price !== undefined ? { price } : {}),
     ...(mrp !== undefined ? { mrp } : {}),
     ...(moq !== undefined ? { moq } : {}),
-    ...(color ? { color } : {}),
-    ...(size ? { size } : {}),
+    colors,
+    sizes,
     tags,
     warnings,
   };

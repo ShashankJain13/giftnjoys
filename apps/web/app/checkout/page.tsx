@@ -56,7 +56,10 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!hydrated || lines.length === 0) return;
-    clientApi<Quote>('/cart/quote', { method: 'POST', body: { items: lines.map((l) => ({ productId: l.productId, qty: l.qty })), giftWrap } })
+    clientApi<Quote>('/cart/quote', {
+      method: 'POST',
+      body: { items: lines.map((l) => ({ productId: l.productId, qty: l.qty, ...(l.variant ? { variant: l.variant } : {}) })), giftWrap },
+    })
       .then(setQuote)
       .catch(() => undefined);
   }, [hydrated, lines, giftWrap]);
@@ -84,7 +87,7 @@ export default function CheckoutPage() {
         state: values.state,
         pincode: values.pincode,
       },
-      items: lines.map((l) => ({ productId: l.productId, qty: l.qty })),
+      items: lines.map((l) => ({ productId: l.productId, qty: l.qty, ...(l.variant ? { variant: l.variant } : {}) })),
       giftWrap,
       giftMessage: values.giftMessage,
       notes: values.notes,
@@ -215,14 +218,17 @@ export default function CheckoutPage() {
           <h2 className="text-lg font-semibold">Your order</h2>
           <ul className="space-y-3">
             {lines.map((l) => {
-              const q = quote?.lines.find((x) => x.productId === l.productId);
+              const q = quote?.lines.find((x) => x.productId === l.productId && (x.variant ?? '') === (l.variant ?? ''));
               return (
-                <li key={l.productId} className="flex items-center gap-3 text-sm">
+                <li key={`${l.productId}::${l.variant ?? ''}`} className="flex items-center gap-3 text-sm">
                   <span className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-brand-50">
                     {l.image && <img src={l.image} alt="" className="size-full object-cover" />}
                     <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-ink text-[10px] font-bold text-white">{l.qty}</span>
                   </span>
-                  <span className="line-clamp-2 flex-1">{l.name}</span>
+                  <span className="line-clamp-2 flex-1">
+                    {l.name}
+                    {l.variant && <span className="block text-xs text-neutral-500">{l.variant}</span>}
+                  </span>
                   <span className="font-medium">{formatINR(q?.lineTotal ?? l.price * l.qty)}</span>
                 </li>
               );

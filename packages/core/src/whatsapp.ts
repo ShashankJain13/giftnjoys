@@ -23,7 +23,7 @@ export function orderPlacedText(order: OrderSummary, storeName: string): string 
   const lines = [
     `Hi ${storeName}, I placed order *${order.orderNumber}*.`,
     '',
-    ...order.items.map((i) => `• ${i.name} × ${i.qty} — ${formatINR(i.lineTotal)}`),
+    ...order.items.map((i) => `• ${i.name}${i.variant ? ` (${i.variant})` : ''} × ${i.qty} — ${formatINR(i.lineTotal)}`),
     '',
     `Total: *${formatINR(order.total)}*${order.giftWrap ? ' (gift wrapped)' : ''}`,
     `Name: ${order.customer.name}`,
