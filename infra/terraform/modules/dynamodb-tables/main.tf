@@ -39,10 +39,11 @@ locals {
     categories = { hash = "id", attributes = ["id"], gsis = [], ttl = null }
     orders = {
       hash       = "orderNumber"
-      attributes = ["orderNumber", "status", "createdAt", "customerPhone"]
+      attributes = ["orderNumber", "status", "createdAt", "customerPhone", "accountId"]
       gsis = [
         { name = "byStatus", hash = "status", range = "createdAt" },
         { name = "byPhone", hash = "customerPhone", range = "createdAt" },
+        { name = "byAccount", hash = "accountId", range = "createdAt" },
       ]
       ttl = null
     }
@@ -54,6 +55,12 @@ locals {
     }
     settings = { hash = "key", attributes = ["key"], gsis = [], ttl = null }
     meta     = { hash = "pk", attributes = ["pk"], gsis = [], ttl = "expiresAt" }
+    accounts = {
+      hash       = "id"
+      attributes = ["id", "email"]
+      gsis       = [{ name = "byEmail", hash = "email", range = null }]
+      ttl        = null
+    }
   }
 }
 

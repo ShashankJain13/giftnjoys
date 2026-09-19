@@ -1,7 +1,8 @@
 'use client';
 
 import { formatINR } from '@gnj/core/format';
-import { Menu, Search, ShoppingBag, X } from 'lucide-react';
+import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -124,6 +125,66 @@ export function CartButton() {
         </span>
       )}
     </Link>
+  );
+}
+
+export function AccountButton() {
+  const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => box.current && !box.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  if (status === 'loading') return <span className="size-9" aria-hidden />;
+
+  if (!session?.user) {
+    return (
+      <div ref={box} className="relative">
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Sign in" className="flex items-center gap-1.5 rounded-full p-2 hover:bg-brand-50 sm:px-3">
+          <User className="size-4" />
+          <span className="hidden text-sm font-medium sm:inline">Sign in</span>
+        </button>
+        {open && (
+          <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5">
+            <button type="button" onClick={() => signIn('google')} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-brand-50">
+              Continue with Google
+            </button>
+            <button type="button" onClick={() => signIn('facebook')} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-brand-50">
+              Continue with Facebook
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={box} className="relative">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Account" className="flex items-center gap-2 rounded-full p-1 hover:bg-brand-50 sm:px-2 sm:py-1">
+        {session.user.image ? (
+          <img src={session.user.image} alt="" className="size-7 rounded-full object-cover" />
+        ) : (
+          <span className="flex size-7 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+            {session.user.name?.[0]?.toUpperCase() ?? '🙂'}
+          </span>
+        )}
+        <span className="hidden max-w-24 truncate text-sm font-medium sm:inline">{session.user.name}</span>
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5">
+          <Link href="/account" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm hover:bg-brand-50">
+            My orders & address
+          </Link>
+          <button type="button" onClick={() => signOut()} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -19,6 +19,11 @@ const envSchema = z
     QUEUE_MODE: z.enum(['inprocess', 'sqs']).default('inprocess'),
     NOTIFICATIONS_QUEUE_URL: z.string().optional(),
 
+    // Optional: only needed to enable storefront account (OAuth) endpoints.
+    CUSTOMER_JWT_SECRET: z.string().optional(),
+    /** Shared secret the storefront's own server sends when upserting an account after OAuth sign-in. */
+    INTERNAL_API_SECRET: z.string().optional(),
+
     PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
     ADMIN_SITE_URL: z.string().url().default('http://localhost:5173'),
     CORS_ORIGINS: z

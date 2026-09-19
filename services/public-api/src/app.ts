@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { ZodError } from 'zod';
 import type { AppContext } from './context';
+import { accountRoutes } from './routes/accounts';
 import { catalogRoutes } from './routes/catalog';
 import { orderRoutes } from './routes/orders';
 
@@ -16,8 +17,8 @@ export function createApp(ctx: AppContext) {
     '*',
     cors({
       origin: ctx.env.CORS_ORIGINS,
-      allowMethods: ['GET', 'POST', 'OPTIONS'],
-      allowHeaders: ['Content-Type', 'Idempotency-Key'],
+      allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+      allowHeaders: ['Content-Type', 'Idempotency-Key', 'Authorization', 'X-Internal-Secret'],
       maxAge: 600,
     }),
   );
@@ -26,6 +27,7 @@ export function createApp(ctx: AppContext) {
   app.get('/health', (c) => c.json({ ok: true, service: 'public-api', env: ctx.env.APP_ENV }));
   app.route('/v1', catalogRoutes(ctx));
   app.route('/v1', orderRoutes(ctx));
+  app.route('/v1', accountRoutes(ctx));
 
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Route not found' } }, 404));
   app.onError((err, c) => {

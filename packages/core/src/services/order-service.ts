@@ -102,7 +102,7 @@ export class OrderService {
 
   async placeOrder(
     input: CheckoutInput,
-    opts: { idempotencyKey?: string } = {},
+    opts: { idempotencyKey?: string; accountId?: string } = {},
   ): Promise<{ order: Order; created: boolean }> {
     if (input.website) throw new AppError(400, 'REJECTED', 'We could not place this order. Please try again.');
 
@@ -138,6 +138,7 @@ export class OrderService {
       status: 'PENDING',
       customer: input.customer,
       customerPhone: input.customer.phone,
+      ...(opts.accountId ? { accountId: opts.accountId } : {}),
       items,
       subtotal: quote.subtotal,
       shippingFee: quote.shippingFee,

@@ -12,6 +12,7 @@ import {
   type Quote,
 } from '@gnj/core';
 import { Hono } from 'hono';
+import { verifyAccountToken } from '../auth';
 import type { AppContext } from '../context';
 import { noStore, parseBody, parseWith, rateLimit } from '../http';
 
@@ -42,9 +43,17 @@ export function orderRoutes(ctx: AppContext) {
     }
     const input = await parseBody(c, checkoutSchema);
 
+    // Optional: a signed-in shopper's token, so the order can be linked to their account and
+    // (if requested) their saved address updated. Guest checkout works fine without it.
+    let accountId: string | undefined;
+    const authHeader = c.req.header('authorization') ?? '';
+    if (authHeader.startsWith('Bearer ') && ctx.env.CUSTOMER_JWT_SECRET) {
+      accountId = await verifyAccountToken(authHeader.slice(7).trim(), ctx.env.CUSTOMER_JWT_SECRET).catch(() => undefined);
+    }
+
     let result: { order: Order; created: boolean };
     try {
-      result = await orderService.placeOrder(input, idempotencyKey ? { idempotencyKey } : {});
+      result = await orderService.placeOrder(input, { ...(idempotencyKey ? { idempotencyKey } : {}), ...(accountId ? { accountId } : {}) });
     } catch (err) {
       if (err instanceof AppError && err.code === 'CART_CHANGED') {
         const details = err.details as { lines: Quote['lines'] };
@@ -59,6 +68,12 @@ export function orderRoutes(ctx: AppContext) {
     if (created) {
       ctx.log.info('order.placed', { orderNumber: order.orderNumber, items: order.items.length, total: order.total });
       await ctx.notifications.enqueue({ type: 'ORDER_PLACED', orderNumber: order.orderNumber });
+      if (accountId && input.saveAddress) {
+        const { phone, address1, address2, city, state, pincode } = order.customer;
+        await ctx.repos.accounts.updateSavedAddress(accountId, { phone, address1, address2, city, state, pincode }).catch((err: unknown) => {
+          ctx.log.warn('account.save_address_failed', { accountId, error: String(err) });
+        });
+      }
     }
     const snapshot = await ctx.catalog.get();
     return c.json(

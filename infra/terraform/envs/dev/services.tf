@@ -10,6 +10,12 @@ locals {
   whatsapp_token_param      = "/giftnjoys/whatsapp/token"
   whatsapp_app_secret_param = "/giftnjoys/whatsapp/app-secret"
 
+  # Created out-of-band in Google Cloud Console / the Meta App dashboard — same reasoning as above.
+  google_client_id_param       = "/giftnjoys/oauth/google-client-id"
+  google_client_secret_param   = "/giftnjoys/oauth/google-client-secret"
+  facebook_client_id_param     = "/giftnjoys/oauth/facebook-client-id"
+  facebook_client_secret_param = "/giftnjoys/oauth/facebook-client-secret"
+
   common_env = {
     APP_ENV                 = var.environment
     LOG_LEVEL               = "info"
@@ -35,8 +41,10 @@ locals {
   })
 
   public_env = merge(local.common_env, {
-    CORS_ORIGINS        = join(",", concat([local.public_site_url], var.local_public_origins))
-    CATALOG_TTL_SECONDS = "300"
+    CORS_ORIGINS                  = join(",", concat([local.public_site_url], var.local_public_origins))
+    CATALOG_TTL_SECONDS           = "300"
+    CUSTOMER_JWT_SECRET_SSM_PARAM = aws_ssm_parameter.customer_jwt_secret.name
+    INTERNAL_API_SECRET_SSM_PARAM = aws_ssm_parameter.internal_api_secret.name
   })
 }
 
@@ -95,6 +103,30 @@ resource "aws_ssm_parameter" "whatsapp_verify_token" {
   value = random_password.whatsapp_verify_token.result
 }
 
+resource "random_password" "customer_jwt_secret" {
+  length  = 64
+  special = false
+}
+
+resource "aws_ssm_parameter" "customer_jwt_secret" {
+  name  = "/giftnjoys/${var.environment}/public-api/customer-jwt-secret"
+  type  = "SecureString"
+  value = random_password.customer_jwt_secret.result
+}
+
+# Shared between public-api (verifies) and the storefront server (mints via /v1/accounts/oauth) —
+# lets the storefront's own backend call that one internal endpoint without a customer token yet.
+resource "random_password" "internal_api_secret" {
+  length  = 40
+  special = false
+}
+
+resource "aws_ssm_parameter" "internal_api_secret" {
+  name  = "/giftnjoys/${var.environment}/internal-api-secret"
+  type  = "SecureString"
+  value = random_password.internal_api_secret.result
+}
+
 resource "random_password" "admin_initial" {
   length  = 20
   special = false
@@ -122,6 +154,11 @@ data "aws_iam_policy_document" "public_api" {
     sid       = "EnqueueNotifications"
     actions   = ["sqs:SendMessage"]
     resources = [module.notifications_queue.arn]
+  }
+  statement {
+    sid       = "Secrets"
+    actions   = ["ssm:GetParameter"]
+    resources = [aws_ssm_parameter.customer_jwt_secret.arn, aws_ssm_parameter.internal_api_secret.arn]
   }
 }
 

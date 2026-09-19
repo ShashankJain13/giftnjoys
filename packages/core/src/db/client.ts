@@ -8,6 +8,7 @@ export interface TableNames {
   importJobs: string;
   settings: string;
   meta: string;
+  accounts: string;
 }
 
 export interface Db {
@@ -32,6 +33,7 @@ export function tableNames(prefix: string): TableNames {
     importJobs: `${prefix}-import-jobs`,
     settings: `${prefix}-settings`,
     meta: `${prefix}-meta`,
+    accounts: `${prefix}-accounts`,
   };
 }
 

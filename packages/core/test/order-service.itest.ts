@@ -56,6 +56,7 @@ describe.skipIf(!isLocal)('OrderService (DynamoDB Local)', () => {
     giftWrap: false,
     giftMessage: '',
     notes: '',
+    saveAddress: false,
     website: '',
     ...extra,
   });
@@ -198,5 +199,26 @@ describe.skipIf(!isLocal)('OrderService (DynamoDB Local)', () => {
       { variant: 'Red / M', qty: 1 },
       { variant: 'Blue / L', qty: 2 },
     ]);
+  });
+
+  it('upserts an account by email, keeping the same id across sign-ins from different providers', async () => {
+    const first = await repos.accounts.upsertByEmail({ email: 'shopper@example.com', name: 'Shopper One', provider: 'google' });
+    const second = await repos.accounts.upsertByEmail({ email: 'Shopper@Example.com', name: 'Shopper Renamed', provider: 'facebook' });
+    expect(second.id).toBe(first.id);
+    expect(second.name).toBe('Shopper Renamed');
+    expect(second.provider).toBe('facebook');
+    expect(await repos.accounts.findByEmail('shopper@example.com')).toMatchObject({ id: first.id });
+  });
+
+  it('saves an account address and links a placed order to the account', async () => {
+    const account = await repos.accounts.upsertByEmail({ email: 'linked@example.com', name: 'Linked Shopper', provider: 'google' });
+    const address = { phone: '9876543210', address1: '2 Test Lane', address2: '', city: 'Pune', state: 'Maharashtra' as const, pincode: '411001' };
+    const updated = await repos.accounts.updateSavedAddress(account.id, address);
+    expect(updated.savedAddress).toEqual(address);
+
+    const mug = await publishedProduct('Itest Account Mug', 250, 5);
+    const { order } = await repos.orderService.placeOrder(checkout([{ productId: mug.id, qty: 1 }]), { accountId: account.id });
+    expect(order.accountId).toBe(account.id);
+    expect(await repos.orders.listByAccount(account.id)).toEqual([expect.objectContaining({ orderNumber: order.orderNumber })]);
   });
 });

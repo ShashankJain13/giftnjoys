@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { SessionProvider } from 'next-auth/react';
 import type { ReactNode } from 'react';
 import { Footer, WhatsAppFloat } from '@/components/Footer';
 import { Header } from '@/components/Header';
@@ -27,12 +28,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">
           Skip to content
         </a>
-        <Header settings={settings} categories={categories} />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
-        <Footer settings={settings} categories={categories} />
-        <WhatsAppFloat settings={settings} />
+        <SessionProvider>
+          <Header settings={settings} categories={categories} />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <Footer settings={settings} categories={categories} />
+          <WhatsAppFloat settings={settings} />
+        </SessionProvider>
       </body>
     </html>
   );

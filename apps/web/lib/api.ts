@@ -48,7 +48,7 @@ export function getProducts(params: Record<string, string | undefined>) {
 }
 
 /** Browser-side JSON call to the public API. */
-export async function clientApi<T>(path: string, init: { method?: 'GET' | 'POST'; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
+export async function clientApi<T>(path: string, init: { method?: 'GET' | 'POST' | 'PUT'; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${PUBLIC_API}/v1${path}`, {

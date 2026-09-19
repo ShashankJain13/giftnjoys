@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Category, PublicSettings } from '@/lib/types';
 import { OCCASION_EMOJI } from '@/lib/occasions';
-import { CartButton, MobileMenu, SearchBox } from './HeaderClient';
+import { AccountButton, CartButton, MobileMenu, SearchBox } from './HeaderClient';
 
 export function Header({ settings, categories }: { settings: PublicSettings; categories: Category[] }) {
   return (
@@ -22,6 +22,7 @@ export function Header({ settings, categories }: { settings: PublicSettings; cat
           <Link href="/track" className="hidden rounded-full px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-brand-50 sm:block">
             Track order
           </Link>
+          <AccountButton />
           <CartButton />
         </nav>
       </div>

@@ -95,6 +95,8 @@ export const checkoutSchema = z.object({
   giftWrap: z.boolean().default(false),
   giftMessage: z.string().trim().max(300).default(''),
   notes: z.string().trim().max(500).default(''),
+  /** Signed-in shoppers only — updates their saved address from this order's details. */
+  saveAddress: z.boolean().default(false),
   /** Honeypot: real users never fill this hidden field. */
   website: z.string().max(200).default(''),
 });
@@ -134,6 +136,8 @@ export interface Order {
   customer: Customer;
   /** Duplicated top-level for the byPhone GSI. */
   customerPhone: string;
+  /** Set when placed by a signed-in account — absent for guest checkout. Duplicated for the byAccount GSI. */
+  accountId?: string;
   items: OrderItem[];
   subtotal: number;
   shippingFee: number;

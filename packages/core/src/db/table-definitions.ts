@@ -11,7 +11,9 @@ export const GSI = {
   productsBySourceHash: 'bySourceHash',
   ordersByStatus: 'byStatus',
   ordersByPhone: 'byPhone',
+  ordersByAccount: 'byAccount',
   importJobsByCreatedAt: 'byCreatedAt',
+  accountsByEmail: 'byEmail',
 } as const;
 
 const S = 'S' as const;
@@ -51,13 +53,14 @@ export function tableDefinitions(t: TableNames): CreateTableCommandInput[] {
       TableName: t.orders,
       BillingMode: 'PAY_PER_REQUEST',
       KeySchema: [{ AttributeName: 'orderNumber', KeyType: 'HASH' }],
-      AttributeDefinitions: ['orderNumber', 'status', 'createdAt', 'customerPhone'].map((n) => ({
+      AttributeDefinitions: ['orderNumber', 'status', 'createdAt', 'customerPhone', 'accountId'].map((n) => ({
         AttributeName: n,
         AttributeType: S,
       })),
       GlobalSecondaryIndexes: [
         gsi(GSI.ordersByStatus, 'status', 'createdAt'),
         gsi(GSI.ordersByPhone, 'customerPhone', 'createdAt'),
+        gsi(GSI.ordersByAccount, 'accountId', 'createdAt'),
       ],
     },
     {
@@ -79,6 +82,14 @@ export function tableDefinitions(t: TableNames): CreateTableCommandInput[] {
       BillingMode: 'PAY_PER_REQUEST',
       KeySchema: [{ AttributeName: 'pk', KeyType: 'HASH' }],
       AttributeDefinitions: [{ AttributeName: 'pk', AttributeType: S }],
+    },
+    {
+      // Storefront shopper accounts (Google/Facebook sign-in). Separate from admin users (meta table).
+      TableName: t.accounts,
+      BillingMode: 'PAY_PER_REQUEST',
+      KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+      AttributeDefinitions: ['id', 'email'].map((n) => ({ AttributeName: n, AttributeType: S })),
+      GlobalSecondaryIndexes: [gsi(GSI.accountsByEmail, 'email')],
     },
   ];
 }

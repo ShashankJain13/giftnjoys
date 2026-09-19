@@ -1,3 +1,4 @@
+export * from './account';
 export * from './common';
 export * from './product';
 export * from './category';

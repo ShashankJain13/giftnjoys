@@ -71,6 +71,20 @@ export class OrdersRepository {
     return (res.Items ?? []) as Order[];
   }
 
+  async listByAccount(accountId: string, limit = 20): Promise<Order[]> {
+    const res = await this.db.doc.send(
+      new QueryCommand({
+        TableName: this.table,
+        IndexName: GSI.ordersByAccount,
+        KeyConditionExpression: 'accountId = :a',
+        ExpressionAttributeValues: { ':a': accountId },
+        ScanIndexForward: false,
+        Limit: limit,
+      }),
+    );
+    return (res.Items ?? []) as Order[];
+  }
+
   async countByStatus(status: OrderStatus, sinceIso?: string): Promise<number> {
     let count = 0;
     let startKey: Record<string, unknown> | undefined;

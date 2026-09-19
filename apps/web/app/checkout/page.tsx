@@ -2,6 +2,7 @@
 
 import { formatINR } from '@gnj/core/format';
 import { checkoutSchema, INDIAN_STATES } from '@gnj/core/schemas';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -41,18 +42,38 @@ const inputClass = (invalid?: boolean) =>
 export default function CheckoutPage() {
   const router = useRouter();
   const hydrated = useHydrated();
+  const { data: session } = useSession();
   const { lines, giftWrap, setGiftWrap, clear } = useCart();
   const [values, setValues] = useState<FormValues>(initial);
+  const [saveAddress, setSaveAddress] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<ReactNode>();
   const [submitting, setSubmitting] = useState(false);
   const [quote, setQuote] = useState<Quote>();
   const idempotencyKey = useRef<string>('');
   const placed = useRef(false);
+  const prefilled = useRef(false);
 
   useEffect(() => {
     idempotencyKey.current = crypto.randomUUID();
   }, []);
+
+  // Pre-fill from the signed-in account once, without clobbering anything the shopper already typed.
+  useEffect(() => {
+    if (prefilled.current || !session) return;
+    prefilled.current = true;
+    setValues((v) => ({
+      ...v,
+      name: v.name || session.user?.name || '',
+      email: v.email || session.user?.email || '',
+      phone: v.phone || session.savedAddress?.phone || '',
+      address1: v.address1 || session.savedAddress?.address1 || '',
+      address2: v.address2 || session.savedAddress?.address2 || '',
+      city: v.city || session.savedAddress?.city || '',
+      state: v.state || session.savedAddress?.state || '',
+      pincode: v.pincode || session.savedAddress?.pincode || '',
+    }));
+  }, [session]);
 
   useEffect(() => {
     if (!hydrated || lines.length === 0) return;
@@ -91,6 +112,7 @@ export default function CheckoutPage() {
       giftWrap,
       giftMessage: values.giftMessage,
       notes: values.notes,
+      saveAddress: !!session?.accountToken && saveAddress,
       website: values.website,
     };
     const parsed = checkoutSchema.safeParse(payload);
@@ -104,7 +126,10 @@ export default function CheckoutPage() {
       const order = await clientApi<PlacedOrder>('/orders', {
         method: 'POST',
         body: payload,
-        headers: { 'Idempotency-Key': idempotencyKey.current },
+        headers: {
+          'Idempotency-Key': idempotencyKey.current,
+          ...(session?.accountToken ? { Authorization: `Bearer ${session.accountToken}` } : {}),
+        },
       });
       try {
         sessionStorage.setItem(`gnj-order-${order.orderNumber}`, JSON.stringify(order));
@@ -190,6 +215,12 @@ export default function CheckoutPage() {
                 </select>
               </Field>
             </div>
+            {session?.accountToken && (
+              <label className="mt-4 flex items-center gap-3 text-sm">
+                <input type="checkbox" checked={saveAddress} onChange={(ev) => setSaveAddress(ev.target.checked)} className="size-4 accent-brand-600" />
+                Save this address to my account for next time
+              </label>
+            )}
           </section>
 
           <section className="rounded-2xl bg-white p-5 ring-1 ring-black/5">

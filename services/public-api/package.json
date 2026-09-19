@@ -11,11 +11,13 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.1134.0",
     "@gnj/adapters": "workspace:*",
     "@gnj/core": "workspace:*",
     "@gnj/notifications": "workspace:*",
     "@hono/node-server": "^2.1.1",
     "hono": "^4.13.8",
+    "jose": "^6.2.12",
     "minisearch": "^7.2.0",
     "zod": "^4.6.5"
   },
